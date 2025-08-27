@@ -1,0 +1,19 @@
+# Environments
+.venv/
+.env
+__pycache__/
+*.pyc
+
+# Builds
+dist/
+build/
+*.egg-info/
+
+# Coverage
+.coverage*
+htmlcov/
+
+# OS / IDE
+.DS_Store
+.vscode/
+.idea/

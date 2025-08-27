@@ -1,0 +1,14 @@
+{
+  "venvPath": ".",
+  "venv": ".venv",
+  "include": [
+    "src"
+  ],
+  "exclude": [
+    "**/__pycache__",
+    "dist",
+    "build"
+  ],
+  "typeCheckingMode": "standard",
+  "reportMissingTypeStubs": false
+}

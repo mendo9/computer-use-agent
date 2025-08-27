@@ -1,0 +1,35 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v6
+
+      - name: Install Python (from pyproject or .python-version)
+        run: uv python install
+
+      - name: Lock & sync (dev)
+        run: |
+          uv lock
+          uv sync --dev
+
+      - name: Lint (Ruff)
+        run: |
+          uv run ruff format --check .
+          uv run ruff check .
+
+      - name: Type-check (Pyright)
+        run: uv run pyright
+
+      - name: Tests
+        run: uv run pytest -q
