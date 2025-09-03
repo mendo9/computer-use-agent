@@ -18,3 +18,4 @@ htmlcov/
 .idea/
 
 /**/vm_session*.json
+vm_config.json
