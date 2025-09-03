@@ -8,7 +8,7 @@ from pathlib import Path
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
-from vm_automation.poc_main import VMAutomationPOC, create_default_poc_target
+from main import VMAutomation, create_default_poc_target
 
 
 def print_banner():
@@ -38,7 +38,7 @@ async def run_poc_demo():
     
     # Initialize POC
     print("🚀 Initializing VM Automation POC...")
-    poc = VMAutomationPOC(poc_target, use_mock=True)
+    poc = VMAutomation(poc_target, use_mock=True)
     print(f"   Session ID: {poc.session_id}")
     print()
     
@@ -112,7 +112,7 @@ async def run_individual_phases():
     print()
     
     poc_target = create_default_poc_target()
-    poc = VMAutomationPOC(poc_target, use_mock=True)
+    poc = VMAutomation(poc_target, use_mock=True)
     
     # Test Phase 1 only
     print("▶️  Testing Phase 1: VM Navigation...")

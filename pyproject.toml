@@ -18,31 +18,25 @@ classifiers = [
 # Runtime deps
 dependencies = [
   "openai>=1.52.0",
-  "openai-agents>=0.2.9",  # Agents SDK
-  "pydantic>=2.8.0",
-  "pydantic-settings>=2.3.0",
-  "httpx>=0.27.0",
-  "structlog>=24.1.0",
-  "tenacity>=8.3.0",
-  "rich>=13.7.0",
+  "openai-agents>=0.2.9", # Agents SDK
   # VM Automation POC dependencies
   "ultralytics>=8.0.0",
   "onnxruntime>=1.16.0",
   "paddlepaddle>=2.5.0",
   "paddleocr>=2.7.0",
   "opencv-python>=4.8.0",
-  "pyautogui>=0.9.54",
   "vncdotool>=1.2.0",
   "fastapi>=0.104.0",
   "uvicorn>=0.24.0",
   "pillow>=10.0.0",
   "numpy>=1.24.0",
+  "onnx>=1.19.0",
 ]
 
 # Dev / tooling
 
 [project.scripts]
-agent-starter = "agent_template.cli:main"
+run_main = "src.main:main"
 
 [tool.ruff]
 line-length = 100
@@ -62,8 +56,8 @@ addopts = "-q"
 testpaths = ["tests"]
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/agent_template"]
-include = ["src/agent_template/**"]
+packages = ["src"]
+include = ["src/**"]
 
 [tool.uv]
 default-groups = ["dev"]
