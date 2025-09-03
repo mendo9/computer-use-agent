@@ -279,58 +279,6 @@ class VMAutomation:
         return filepath
 
 
-def create_default_config() -> VMConfig:
-    """Create a default VM configuration"""
-    return VMConfig(
-        vm_host="192.168.1.100",  # Update with actual VM IP
-        vm_username="testuser",
-        vm_password="testpass",
-        target_app_name="MyApp.exe",
-        target_button_text="Submit",
-        expected_desktop_elements=["Desktop", "Start", "Taskbar"],
-        expected_app_elements=["Submit", "Button"],
-    )
-
-
-async def main():
-    """Main function for running VM automation"""
-    print("VM Automation - Starting...")
-
-    # Create VM configuration
-    config = create_default_config()
-
-    # Initialize and run automation
-    automation = VMAutomation(config)
-
-    # Run the complete workflow
-    result = await automation.run_full_automation()
-
-    print("\n" + "=" * 50)
-    print("AUTOMATION RESULTS:")
-    print("=" * 50)
-    print(f"Success: {result['success']}")
-
-    if result["success"]:
-        print(f"Execution Time: {result['execution_time']:.2f}s")
-        print(f"Session ID: {result['session_id']}")
-        print("\nPhases completed:")
-        for phase, phase_result in result["phases"].items():
-            print(f"  - {phase}: {phase_result['success']}")
-    else:
-        print(f"Error: {result.get('error', 'Unknown error')}")
-        if "phase_failed" in result:
-            print(f"Failed Phase: {result['phase_failed']}")
-
-    print("\nSession Summary:")
-    summary = result["session_summary"]
-    for key, value in summary.items():
-        print(f"  {key}: {value}")
-
-    # Save session log
-    log_file = automation.save_session_log()
-    print(f"\nFull session log saved to: {log_file}")
-
-
 def cli_main():
     """CLI entry point for production deployment"""
     parser = argparse.ArgumentParser(description="VM Automation - Production GUI Automation System")
