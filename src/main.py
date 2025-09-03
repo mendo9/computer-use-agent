@@ -12,7 +12,7 @@ import argparse
 import sys
 from dataclasses import dataclass
 
-from .agents import VMSession, VMTarget, VMNavigatorAgent, AppControllerAgent
+from src.agents import VMSession, VMTarget, VMNavigatorAgent, AppControllerAgent
 
 
 @dataclass

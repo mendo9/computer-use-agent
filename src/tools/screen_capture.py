@@ -37,8 +37,9 @@ class ScreenCapture:
         """
         try:
             if self.connection_type == "vnc":
-                # Connect to VNC server
-                self.vnc_client = vnc.connect(host, port=port, password=password)
+                # Connect to VNC server (vncdotool expects host:port format)
+                server_address = f"{host}::{port}" if port != 5900 else host
+                self.vnc_client = vnc.connect(server_address, password=password)
                 self.is_connected = True
                 print(f"Connected to VNC server at {host}:{port}")
                 return True

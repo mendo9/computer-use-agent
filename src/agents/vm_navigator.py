@@ -6,10 +6,10 @@ from typing import Dict, Any, Optional
 from pathlib import Path
 
 from .shared_context import VMSession, VMTarget
-from ..tools.screen_capture import ScreenCapture
-from ..tools.input_actions import InputActions
-from ..tools.verification import ActionVerifier
-from ..vision.ui_finder import UIFinder
+from src.tools.screen_capture import ScreenCapture
+from src.tools.input_actions import InputActions
+from src.tools.verification import ActionVerifier
+from src.vision.ui_finder import UIFinder
 
 
 class VMNavigatorTools:
