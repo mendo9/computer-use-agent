@@ -1,0 +1,28 @@
+{
+  // Use Ruff for Python formatting + lint fixes
+  "editor.formatOnSave": true,
+
+  "[python]": {
+    "editor.defaultFormatter": "charliermarsh.ruff"
+  },
+
+  // Make Ruff read your repo config
+  "ruff.args": ["--config=pyproject.toml"],
+  "ruff.lint.args": ["--config=pyproject.toml"],
+
+  // Apply Ruff fixes / import sorting on save
+  "editor.codeActionsOnSave": {
+    "source.fixAll.ruff": "explicit",
+    "source.organizeImports.ruff": "explicit"
+  },
+
+  // Prefer your project venv's Ruff (keeps versions aligned with CI)
+  "ruff.path": [
+    "${workspaceFolder}/.venv/bin/ruff",
+    "${workspaceFolder}\\.venv\\Scripts\\ruff.exe"
+  ],
+
+  // Optional: run linter continuously
+  "ruff.lint.run": "onSave"
+}
+  
