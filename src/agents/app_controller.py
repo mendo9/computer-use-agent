@@ -5,10 +5,10 @@ import time
 from typing import Dict, Any, List, Optional
 
 from .shared_context import VMSession, VMTarget
-from tools.screen_capture import ScreenCapture
-from tools.input_actions import InputActions
-from tools.verification import ActionVerifier
-from vision.ui_finder import UIFinder
+from ..tools.screen_capture import ScreenCapture
+from ..tools.input_actions import InputActions
+from ..tools.verification import ActionVerifier
+from ..vision.ui_finder import UIFinder
 
 
 class AppControllerTools:

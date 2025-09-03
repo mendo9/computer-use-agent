@@ -5,8 +5,8 @@ import numpy as np
 import time
 from typing import Optional, Tuple, List, Dict
 from dataclasses import dataclass
-from vision.ui_finder import UIFinder, UIElement
-from vision.ocr_reader import OCRReader
+from ..vision.ui_finder import UIFinder, UIElement
+from ..vision.ocr_reader import OCRReader
 
 
 @dataclass

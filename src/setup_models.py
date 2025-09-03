@@ -43,10 +43,7 @@ def setup_paddle_ocr():
     
     # Initialize with English support, CPU mode for POC
     ocr = paddleocr.PaddleOCR(
-        use_angle_cls=True,  # Enable text angle classification
-        lang="en",           # English language
-        use_gpu=False,       # CPU mode for POC
-        show_log=False       # Reduce logging
+        lang="en"            # English language
     )
     
     print("PaddleOCR initialized successfully")

@@ -1,4 +1,4 @@
-"""Main POC orchestrator - coordinates both agents"""
+"""Main VM automation orchestrator - coordinates both agents"""
 
 import asyncio
 import uuid
@@ -6,54 +6,155 @@ import time
 from typing import Dict, Any, Optional
 from pathlib import Path
 
-from agents import VMSession, VMTarget, VMNavigatorAgent, AppControllerAgent
+import os
+import json
+import argparse
+import sys
+from dataclasses import dataclass
+
+from .agents import VMSession, VMTarget, VMNavigatorAgent, AppControllerAgent
+
+
+@dataclass
+class VMConfig:
+    """VM automation configuration"""
+    # VM Connection
+    vm_host: str
+    vm_port: int = 5900
+    vm_username: Optional[str] = None
+    vm_password: Optional[str] = None
+    
+    # Application Target
+    target_app_name: str = "MyApp.exe"
+    target_button_text: str = "Submit"
+    
+    # Patient Safety
+    patient_name: Optional[str] = None
+    patient_mrn: Optional[str] = None
+    patient_dob: Optional[str] = None
+    
+    # Expected UI Elements
+    expected_desktop_elements: list = None
+    expected_app_elements: list = None
+    
+    # Timeouts (seconds)
+    vm_connection_timeout: int = 30
+    desktop_load_timeout: int = 60
+    app_launch_timeout: int = 30
+    
+    # Logging
+    log_level: str = "INFO"
+    save_screenshots: bool = True
+    log_phi: bool = False  # Whether to log patient identifiable info
+    
+    def __post_init__(self):
+        if self.expected_desktop_elements is None:
+            self.expected_desktop_elements = ["Desktop", "Start", "Taskbar"]
+        if self.expected_app_elements is None:
+            self.expected_app_elements = []
+    
+    @classmethod
+    def from_env(cls) -> 'VMConfig':
+        """Create config from environment variables"""
+        return cls(
+            vm_host=os.getenv("VM_HOST", "192.168.1.100"),
+            vm_port=int(os.getenv("VM_PORT", "5900")),
+            vm_username=os.getenv("VM_USERNAME"),
+            vm_password=os.getenv("VM_PASSWORD"),
+            target_app_name=os.getenv("TARGET_APP", "MyApp.exe"),
+            target_button_text=os.getenv("TARGET_BUTTON", "Submit"),
+            patient_name=os.getenv("PATIENT_NAME"),
+            patient_mrn=os.getenv("PATIENT_MRN"),
+            patient_dob=os.getenv("PATIENT_DOB"),
+            log_level=os.getenv("LOG_LEVEL", "INFO"),
+            save_screenshots=os.getenv("SAVE_SCREENSHOTS", "true").lower() == "true",
+            log_phi=os.getenv("LOG_PHI", "false").lower() == "true"
+        )
+    
+    @classmethod
+    def from_file(cls, config_path: str) -> 'VMConfig':
+        """Create config from JSON file"""
+        with open(config_path, 'r') as f:
+            config_data = json.load(f)
+        return cls(**config_data)
+    
+    def to_vm_target(self) -> VMTarget:
+        """Convert to VM target configuration"""
+        return VMTarget(
+            vm_host=self.vm_host,
+            vm_port=self.vm_port,
+            vm_username=self.vm_username or "",
+            vm_password=self.vm_password or "",
+            target_app_name=self.target_app_name,
+            target_button_text=self.target_button_text,
+            expected_desktop_elements=self.expected_desktop_elements,
+            expected_app_elements=self.expected_app_elements,
+            vm_connection_timeout=self.vm_connection_timeout,
+            desktop_load_timeout=self.desktop_load_timeout,
+            app_launch_timeout=self.app_launch_timeout
+        )
+    
+    def get_patient_info(self) -> Dict[str, str]:
+        """Get patient information for safety verification"""
+        return {
+            "name": self.patient_name or "",
+            "mrn": self.patient_mrn or "",
+            "dob": self.patient_dob or ""
+        }
 
 
 class VMAutomation:
     """Main VM Automation class that orchestrates both agents"""
     
-    def __init__(self, poc_target: VMTarget, use_mock: bool = True):
+    def __init__(self, config: VMConfig):
         """
         Initialize VM Automation system
         
         Args:
-            poc_target: VM target configuration
-            use_mock: Use mock implementations for testing
+            config: VM automation configuration
         """
-        self.poc_target = poc_target
-        self.use_mock = use_mock
+        self.config = config
+        self.vm_target = config.to_vm_target()
         self.session_id = str(uuid.uuid4())[:8]
         
         # Initialize session
         self.session = VMSession(
-            vm_config=poc_target.to_vm_config(),
+            vm_config=self.vm_target.to_vm_config(),
             session_id=self.session_id
         )
         
-        # Initialize agents
-        self.vm_navigator = VMNavigatorAgent(self.session, poc_target, use_mock)
-        self.app_controller = AppControllerAgent(self.session, poc_target, use_mock)
+        # Initialize VM Navigator Agent
+        self.vm_navigator = VMNavigatorAgent(self.session, self.vm_target)
+        self.app_controller = None  # Will be initialized with shared components after VM Navigator runs
         
         print(f"VM Automation initialized (Session: {self.session_id})")
-        print(f"Target VM: {poc_target.vm_host}")
-        print(f"Target App: {poc_target.target_app_name}")
-        print(f"Target Button: {poc_target.target_button_text}")
-        print(f"Mock Mode: {use_mock}")
+        print(f"Target VM: {config.vm_host}")
+        print(f"Target App: {config.target_app_name}")
+        print(f"Target Button: {config.target_button_text}")
+        if config.patient_name:
+            if config.log_phi:
+                print(f"Patient: {config.patient_name}, MRN: {config.patient_mrn}")
+            else:
+                print("Patient safety verification enabled")
     
-    async def run_full_poc(self) -> Dict[str, Any]:
+    async def run_full_automation(self) -> Dict[str, Any]:
         """
-        Run the complete POC workflow
+        Run the complete VM automation workflow
         
         Returns:
-            Dictionary with POC results
+            Dictionary with automation results
         """
         start_time = time.time()
-        self.session.log_action("Starting VM Automation POC")
+        self.session.log_action("Starting VM automation")
         
         try:
-            # Phase 1: VM Navigation (Agent 1)
-            self.session.log_action("=== PHASE 1: VM Navigation ===")
-            nav_result = await self.vm_navigator.execute_navigation()
+            # Phase 1: VM Navigation with Patient Safety
+            self.session.log_action("=== PHASE 1: VM Navigation & Patient Safety ===")
+            
+            patient_info = self.config.get_patient_info()
+            nav_result = await self.vm_navigator.execute_navigation(
+                patient_info=patient_info if any(patient_info.values()) else None
+            )
             
             if not nav_result["success"]:
                 return {
@@ -66,12 +167,25 @@ class VMAutomation:
             
             self.session.log_action("Phase 1 completed successfully")
             
+            # Initialize App Controller with shared components from VM Navigator
+            shared_components = nav_result.get("shared_components", {})
+            if not shared_components:
+                return {
+                    "success": False,
+                    "phase_failed": "component_sharing",
+                    "error": "Failed to share components between agents",
+                    "session_summary": self.session.get_session_summary(),
+                    "execution_time": time.time() - start_time
+                }
+            
+            self.app_controller = AppControllerAgent(self.session, self.vm_target, shared_components)
+            
             # Brief pause between agents
             await asyncio.sleep(1)
             
             # Phase 2: App Interaction (Agent 2)
             self.session.log_action("=== PHASE 2: App Interaction ===")
-            app_result = await self.app_controller.execute_app_interaction()
+            app_result = await self.app_controller.execute_button_click_workflow()
             
             if not app_result["success"]:
                 return {
@@ -84,13 +198,13 @@ class VMAutomation:
             
             self.session.log_action("Phase 2 completed successfully")
             
-            # POC completed successfully
+            # Automation completed successfully
             execution_time = time.time() - start_time
-            self.session.log_action(f"POC completed successfully in {execution_time:.2f}s")
+            self.session.log_action(f"VM automation completed successfully in {execution_time:.2f}s")
             
             return {
                 "success": True,
-                "message": "VM Automation POC completed successfully",
+                "message": "VM automation completed successfully",
                 "phases": {
                     "vm_navigation": nav_result,
                     "app_interaction": app_result
@@ -101,7 +215,7 @@ class VMAutomation:
             }
             
         except Exception as e:
-            error_msg = f"POC execution error: {str(e)}"
+            error_msg = f"Automation execution error: {str(e)}"
             self.session.add_error(error_msg)
             
             return {
@@ -120,19 +234,23 @@ class VMAutomation:
         """Run only the app interaction phase (assumes app is already running)"""
         # Mark agent 1 as completed for testing
         self.session.agent_1_completed = True
-        self.session.current_app = self.poc_target.target_app_name
+        self.session.current_app = self.vm_target.target_app_name
+        
+        # Initialize app_controller if not initialized
+        if self.app_controller is None:
+            raise RuntimeError("Cannot run app interaction only without shared components from VM Navigator. Run VM navigation phase first.")
         
         self.session.log_action("Running App Interaction phase only")
-        return await self.app_controller.execute_app_interaction()
+        return await self.app_controller.execute_button_click_workflow()
     
     def get_session_log(self) -> Dict[str, Any]:
         """Get complete session log and state"""
         return {
             "session_id": self.session_id,
-            "poc_target": {
-                "vm_host": self.poc_target.vm_host,
-                "target_app": self.poc_target.target_app_name,
-                "target_button": self.poc_target.target_button_text
+            "vm_target": {
+                "vm_host": self.vm_target.vm_host,
+                "target_app": self.vm_target.target_app_name,
+                "target_button": self.vm_target.target_button_text
             },
             "session_summary": self.session.get_session_summary(),
             "action_log": self.session.action_log,
@@ -144,7 +262,7 @@ class VMAutomation:
         """Save session log to file"""
         if not filepath:
             timestamp = time.strftime("%Y%m%d_%H%M%S")
-            filepath = f"poc_session_{self.session_id}_{timestamp}.json"
+            filepath = f"vm_session_{self.session_id}_{timestamp}.json"
         
         import json
         log_data = self.get_session_log()
@@ -156,9 +274,9 @@ class VMAutomation:
         return filepath
 
 
-def create_default_poc_target() -> VMTarget:
-    """Create a default POC target for testing"""
-    return VMTarget(
+def create_default_config() -> VMConfig:
+    """Create a default VM configuration"""
+    return VMConfig(
         vm_host="192.168.1.100",  # Update with actual VM IP
         vm_username="testuser",
         vm_password="testpass",
@@ -170,20 +288,20 @@ def create_default_poc_target() -> VMTarget:
 
 
 async def main():
-    """Main function for running the POC"""
-    print("VM Automation POC - Starting...")
+    """Main function for running VM automation"""
+    print("VM Automation - Starting...")
     
-    # Create POC target
-    poc_target = create_default_poc_target()
+    # Create VM configuration
+    config = create_default_config()
     
-    # Initialize and run POC
-    poc = VMAutomationPOC(poc_target, use_mock=True)
+    # Initialize and run automation
+    automation = VMAutomation(config)
     
     # Run the complete workflow
-    result = await poc.run_full_poc()
+    result = await automation.run_full_automation()
     
     print("\n" + "="*50)
-    print("POC RESULTS:")
+    print("AUTOMATION RESULTS:")
     print("="*50)
     print(f"Success: {result['success']}")
     
@@ -204,9 +322,124 @@ async def main():
         print(f"  {key}: {value}")
     
     # Save session log
-    log_file = poc.save_session_log()
+    log_file = automation.save_session_log()
     print(f"\nFull session log saved to: {log_file}")
 
 
+def cli_main():
+    """CLI entry point for production deployment"""
+    parser = argparse.ArgumentParser(description="VM Automation - Production GUI Automation System")
+    parser.add_argument("--config", "-c", help="Configuration file path (JSON)")
+    parser.add_argument("--validate-env", action="store_true", help="Validate environment and exit")
+    parser.add_argument("--create-samples", action="store_true", help="Create sample configuration files")
+    
+    args = parser.parse_args()
+    
+    if args.create_samples:
+        create_sample_files()
+        return True
+        
+    if args.validate_env:
+        return validate_environment()
+    
+    # Run the automation
+    try:
+        # Load configuration
+        if args.config and os.path.exists(args.config):
+            config = VMConfig.from_file(args.config)
+            print(f"✓ Loaded configuration from {args.config}")
+        elif os.path.exists("vm_config.json"):
+            config = VMConfig.from_file("vm_config.json")
+            print("✓ Loaded configuration from vm_config.json")
+        else:
+            config = VMConfig.from_env()
+            print("✓ Using environment variables and defaults")
+        
+        # Run automation
+        automation = VMAutomation(config)
+        result = asyncio.run(automation.run_full_automation())
+        
+        # Show results
+        print("\n" + "="*50)
+        print("🤖 AUTOMATION RESULTS:")
+        print("="*50)
+        
+        if result["success"]:
+            print("✅ STATUS: SUCCESS")
+            print(f"⏱️  Execution Time: {result['execution_time']:.2f} seconds")
+            if config.patient_name and result.get("patient_verified"):
+                print("🛡️  Patient Safety: ✅ VERIFIED")
+        else:
+            print("❌ STATUS: FAILED")
+            print(f"💥 Error: {result.get('error', 'Unknown error')}")
+            if result.get("safety_critical"):
+                print("🚨 CRITICAL SAFETY FAILURE")
+        
+        # Save session report
+        log_file = automation.save_session_log()
+        print(f"📋 Session Report: {log_file}")
+        
+        return result["success"]
+        
+    except KeyboardInterrupt:
+        print("\n⏹️  Interrupted by user")
+        return False
+    except Exception as e:
+        print(f"💥 FATAL ERROR: {str(e)}")
+        return False
+
+
+def validate_environment() -> bool:
+    """Validate that environment is ready for automation"""
+    issues = []
+    
+    # Check for AI models
+    models_dir = Path(__file__).parent / "models"
+    yolo_path = models_dir / "yolov8s.onnx"
+    
+    if not yolo_path.exists():
+        issues.append(f"❌ YOLO model missing: {yolo_path}")
+        issues.append("   Run: uv run src/setup_models.py")
+    
+    # Check configuration
+    if not os.path.exists("vm_config.json") and not os.getenv("VM_HOST"):
+        issues.append("❌ No configuration found")
+        issues.append("   Create vm_config.json or set VM_HOST environment variable")
+    
+    if issues:
+        print("🚨 ENVIRONMENT ISSUES:")
+        for issue in issues:
+            print(f"   {issue}")
+        return False
+    
+    print("✅ Environment validation passed")
+    return True
+
+
+def create_sample_files():
+    """Create sample configuration files"""
+    # Create sample VM config
+    sample_config = {
+        "vm_host": "192.168.1.100",
+        "vm_port": 5900,
+        "vm_username": "username",
+        "vm_password": "password", 
+        "target_app_name": "MyApp.exe",
+        "target_button_text": "Submit",
+        "expected_desktop_elements": ["Desktop", "Start", "Taskbar"],
+        "expected_app_elements": ["Submit", "Button"],
+        "log_level": "INFO",
+        "save_screenshots": True,
+        "log_phi": False
+    }
+    
+    with open("vm_config.sample.json", "w") as f:
+        json.dump(sample_config, f, indent=2)
+    
+    print("✓ Created vm_config.sample.json")
+    print("  Copy to vm_config.json and customize for your environment")
+
+
 if __name__ == "__main__":
-    asyncio.run(main())
+    success = cli_main()
+    sys.exit(0 if success else 1)

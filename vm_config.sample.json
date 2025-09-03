@@ -1,30 +1,20 @@
 {
-  "_comment": "Sample VM Automation Configuration - Copy to vm_config.json and update with real values",
-  
   "vm_host": "192.168.1.100",
   "vm_port": 5900,
-  "vm_username": "your-vm-username",
-  "vm_password": "your-vm-password",
-  
-  "target_app_name": "YourApp.exe",
+  "vm_username": "username",
+  "vm_password": "password",
+  "target_app_name": "MyApp.exe",
   "target_button_text": "Submit",
-  
-  "patient_name": "John Doe",
-  "patient_mrn": "123456",
-  "patient_dob": "01/01/1980",
-  
-  "expected_desktop_elements": ["Desktop", "Start", "Taskbar"],
-  "expected_app_elements": ["Submit", "Patient", "Save"],
-  
-  "vm_connection_timeout": 30,
-  "desktop_load_timeout": 60,
-  "app_launch_timeout": 30,
-  
+  "expected_desktop_elements": [
+    "Desktop",
+    "Start",
+    "Taskbar"
+  ],
+  "expected_app_elements": [
+    "Submit",
+    "Button"
+  ],
   "log_level": "INFO",
   "save_screenshots": true,
-  "log_phi": false,
-  
-  "_security_note": "NEVER commit real passwords or patient information to version control!",
-  "_patient_safety_note": "All three patient fields (name, mrn, dob) are required if any are provided",
-  "_phi_note": "Set log_phi to false in production to prevent logging patient identifiable information"
+  "log_phi": false
 }

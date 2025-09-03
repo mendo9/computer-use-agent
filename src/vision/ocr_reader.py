@@ -23,10 +23,7 @@ class OCRReader:
     def __init__(self, use_gpu: bool = False, lang: str = "en"):
         """Initialize PaddleOCR"""
         self.ocr = paddleocr.PaddleOCR(
-            use_angle_cls=True,  # Enable text angle classification
-            lang=lang,
-            use_gpu=use_gpu,
-            show_log=False
+            lang=lang
         )
         print(f"PaddleOCR initialized (GPU: {use_gpu}, Lang: {lang})")
     
@@ -188,7 +185,7 @@ class OCRReader:
         
         px, py = point
         
-        for text_det in text_detections:
+        for text_det in all_text:
             tx, ty = text_det.center
             distance = ((tx - px) ** 2 + (ty - py) ** 2) ** 0.5
             

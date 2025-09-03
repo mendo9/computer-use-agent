@@ -10,9 +10,17 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
     PYTHONOPTIMIZE=2
-# Install system deps if needed (kept minimal)
+# Install system deps for computer vision and VNC
 RUN apt-get update -qq && apt-get install -y --no-install-recommends \
     ca-certificates \
+    libglib2.0-0 \
+    libsm6 \
+    libxext6 \
+    libxrender-dev \
+    libgomp1 \
+    libglib2.0-0 \
+    libgl1-mesa-glx \
+    libgthread-2.0-0 \
  && rm -rf /var/lib/apt/lists/*
 
 # ---------- Builder: uv + lock + install (no dev) ----------
@@ -54,5 +62,5 @@ ENV PATH="/app/.venv/bin:${PATH}"
 USER appuser
 EXPOSE 8000
 
-# Default command: run the CLI entry point
-CMD ["uv", "run", "agent-starter"]
+# Default command: run the VM automation CLI
+CMD ["uv", "run", "vm-automation"]

@@ -17,3 +17,5 @@ htmlcov/
 .DS_Store
 .vscode/
 .idea/
+
+/**/vm_session*.json

@@ -36,7 +36,7 @@ dependencies = [
 # Dev / tooling
 
 [project.scripts]
-run_main = "src.main:main"
+vm-automation = "src.main:cli_main"
 
 [tool.ruff]
 line-length = 100
