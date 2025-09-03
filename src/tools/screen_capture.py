@@ -4,7 +4,8 @@ import time
 
 import cv2
 import numpy as np
-from src.connections import create_connection, VMConnection
+
+from src.connections import VMConnection, create_connection
 
 
 class ScreenCapture:
@@ -21,13 +22,20 @@ class ScreenCapture:
         self.connection: VMConnection = create_connection(connection_type)
         self.is_connected = False
 
-    def connect(self, host: str, port: int = 5900, password: str | None = None, username: str | None = None, **kwargs) -> bool:
+    def connect(
+        self,
+        host: str,
+        port: int = 5900,
+        password: str | None = None,
+        username: str | None = None,
+        **kwargs,
+    ) -> bool:
         """
         Connect to VM
 
         Args:
             host: VM IP address
-            port: Connection port 
+            port: Connection port
             password: Password if required
             username: Username if required (RDP)
             **kwargs: Additional connection parameters (domain, width, height for RDP)
@@ -36,16 +44,18 @@ class ScreenCapture:
             True if connection successful
         """
         try:
-            result = self.connection.connect(host=host, port=port, username=username, password=password, **kwargs)
+            result = self.connection.connect(
+                host=host, port=port, username=username, password=password, **kwargs
+            )
             self.is_connected = result.success
-            
+
             if result.success:
                 print(result.message)
             else:
                 print(f"Connection failed: {result.message}")
-            
+
             return result.success
-            
+
         except Exception as e:
             print(f"Connection failed: {e}")
             self.is_connected = False
@@ -56,7 +66,7 @@ class ScreenCapture:
         try:
             result = self.connection.disconnect()
             self.is_connected = False
-            
+
             if result.success:
                 print(result.message)
             else:
@@ -77,7 +87,7 @@ class ScreenCapture:
 
         try:
             success, screenshot = self.connection.capture_screen()
-            
+
             if success and screenshot is not None:
                 return screenshot
             else:
@@ -180,7 +190,14 @@ class MockScreenCapture(ScreenCapture):
         super().__init__()
         self.mock_screen = None
 
-    def connect(self, host: str, port: int = 5900, password: str | None = None, username: str | None = None, **kwargs) -> bool:
+    def connect(
+        self,
+        host: str,
+        port: int = 5900,
+        password: str | None = None,
+        username: str | None = None,
+        **kwargs,
+    ) -> bool:
         """Mock connection always succeeds"""
         self.is_connected = True
         print(f"Mock connection to {host}:{port} (for testing)")

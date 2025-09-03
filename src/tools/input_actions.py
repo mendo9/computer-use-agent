@@ -1,6 +1,7 @@
 """Input actions for VM interaction (click, type, keys)"""
 
 import time
+
 from src.connections import VMConnection
 from src.connections.base import ActionResult
 
@@ -64,15 +65,15 @@ class InputActions:
             result1 = self.connection.click(x, y, "left")
             if not result1.success:
                 return result1
-            
+
             # Short delay between clicks
             time.sleep(0.1)
-            
+
             # Perform second click
             result2 = self.connection.click(x, y, "left")
             if not result2.success:
                 return result2
-            
+
             time.sleep(self.action_delay)
             return ActionResult(True, f"Double-clicked at ({x}, {y})")
 
@@ -144,15 +145,17 @@ class InputActions:
             result1 = self.connection.click(start_x, start_y, "left")
             if not result1.success:
                 return result1
-            
+
             time.sleep(0.1)
-            
+
             result2 = self.connection.click(end_x, end_y, "left")
             if not result2.success:
                 return result2
-            
+
             time.sleep(self.action_delay)
-            return ActionResult(True, f"Simulated drag from ({start_x}, {start_y}) to ({end_x}, {end_y})")
+            return ActionResult(
+                True, f"Simulated drag from ({start_x}, {start_y}) to ({end_x}, {end_y})"
+            )
 
         except Exception as e:
             return ActionResult(False, f"Drag failed: {e}")
@@ -181,10 +184,10 @@ class InputActions:
                     result = self.connection.key_press("up")
                 else:
                     result = self.connection.key_press("down")
-                
+
                 if not result.success:
                     return result
-                    
+
                 time.sleep(0.1)
 
             time.sleep(self.action_delay)
@@ -200,30 +203,30 @@ class MockInputActions(InputActions):
     def __init__(self):
         # Create a mock connection
         from src.connections.base import VMConnection
-        
+
         class MockConnection(VMConnection):
             def __init__(self):
                 super().__init__()
                 self.is_connected = True
-            
+
             def connect(self, host, port, username=None, password=None, **kwargs):
-                return type('obj', (object,), {'success': True, 'message': 'Mock connected'})
-            
+                return type("obj", (object,), {"success": True, "message": "Mock connected"})
+
             def disconnect(self):
-                return type('obj', (object,), {'success': True, 'message': 'Mock disconnected'})
-            
+                return type("obj", (object,), {"success": True, "message": "Mock disconnected"})
+
             def capture_screen(self):
                 return True, None
-            
+
             def click(self, x, y, button="left"):
                 return ActionResult(True, f"Mock click {button} at ({x}, {y})")
-            
+
             def type_text(self, text):
                 return ActionResult(True, f"Mock typed: {text}")
-            
+
             def key_press(self, key):
                 return ActionResult(True, f"Mock key press: {key}")
-        
+
         super().__init__(MockConnection())
         self.actions_log = []
 

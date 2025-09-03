@@ -1,8 +1,8 @@
 """VM Connection abstraction layer"""
 
-from .base import VMConnection, ConnectionResult, ActionResult
-from .vnc_connection import VNCConnection
+from .base import ActionResult, ConnectionResult, VMConnection
 from .rdp_connection import RDPConnection
+from .vnc_connection import VNCConnection
 
 
 def create_connection(connection_type: str) -> VMConnection:
@@ -16,10 +16,10 @@ def create_connection(connection_type: str) -> VMConnection:
 
 
 __all__ = [
-    "VMConnection",
-    "ConnectionResult", 
     "ActionResult",
-    "VNCConnection",
+    "ConnectionResult",
     "RDPConnection",
-    "create_connection"
+    "VMConnection",
+    "VNCConnection",
+    "create_connection",
 ]

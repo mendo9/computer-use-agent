@@ -24,7 +24,7 @@ class VMConfig:
     vm_username: str | None = None
     vm_password: str | None = None
     connection_type: str = "vnc"  # "vnc" or "rdp"
-    
+
     # RDP-specific parameters
     rdp_domain: str | None = None
     rdp_width: int = 1920
@@ -293,8 +293,12 @@ def cli_main():
     """CLI entry point for production deployment"""
     parser = argparse.ArgumentParser(description="VM Automation - Production GUI Automation System")
     parser.add_argument("--config", "-c", help="Configuration file path (JSON)")
-    parser.add_argument("--connection", choices=["vnc", "rdp"], default="vnc", 
-                       help="Connection type: vnc or rdp (default: vnc)")
+    parser.add_argument(
+        "--connection",
+        choices=["vnc", "rdp"],
+        default="vnc",
+        help="Connection type: vnc or rdp (default: vnc)",
+    )
     parser.add_argument("--validate-env", action="store_true", help="Validate environment and exit")
     parser.add_argument(
         "--create-samples", action="store_true", help="Create sample configuration files"
@@ -321,7 +325,7 @@ def cli_main():
         else:
             config = VMConfig.from_env()
             print("✓ Using environment variables and defaults")
-        
+
         # Override connection type from CLI if provided
         if args.connection:
             config.connection_type = args.connection
@@ -394,7 +398,7 @@ def create_sample_files():
     sample_config = {
         "vm_host": "192.168.1.100",
         "vm_port": 5900,
-        "vm_username": "username", 
+        "vm_username": "username",
         "vm_password": "password",
         "connection_type": "vnc",
         "rdp_domain": None,
