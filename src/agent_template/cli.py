@@ -13,7 +13,7 @@ def main() -> None:
     # Validate env and show a friendly banner
     Settings.require()
     agent = starter_agent()
-    console.rule("[bold]python-agent-template-uv[/]")
+    console.rule("[bold]computer-use-agent[/]")
     console.print("Running StarterAgent...\n")
     result = Runner().run(agent, "Say hello and tell me the current time using the tool.")
     console.print("\n[b]Agent output[/]:")

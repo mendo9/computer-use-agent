@@ -1,4 +1,4 @@
-# python-agent-template-uv
+# computer-use-agent
 
 A production‑ready Python template for building LLM **agents** using **uv** for packaging & dev, **Ruff** for lint/format, **Pyright** for type checking, and **pytest** for tests. It also includes an **AGENTS.md** that documents your agents, tools, guardrails, and run conventions.
 
