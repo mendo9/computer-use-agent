@@ -23,6 +23,12 @@ class VMConfig:
     vm_port: int = 5900
     vm_username: str | None = None
     vm_password: str | None = None
+    connection_type: str = "vnc"  # "vnc" or "rdp"
+    
+    # RDP-specific parameters
+    rdp_domain: str | None = None
+    rdp_width: int = 1920
+    rdp_height: int = 1080
 
     # Application Target
     target_app_name: str = "MyApp.exe"
@@ -61,6 +67,10 @@ class VMConfig:
             vm_port=int(os.getenv("VM_PORT", "5900")),
             vm_username=os.getenv("VM_USERNAME"),
             vm_password=os.getenv("VM_PASSWORD"),
+            connection_type=os.getenv("CONNECTION_TYPE", "vnc"),
+            rdp_domain=os.getenv("RDP_DOMAIN"),
+            rdp_width=int(os.getenv("RDP_WIDTH", "1920")),
+            rdp_height=int(os.getenv("RDP_HEIGHT", "1080")),
             target_app_name=os.getenv("TARGET_APP", "MyApp.exe"),
             target_button_text=os.getenv("TARGET_BUTTON", "Submit"),
             patient_name=os.getenv("PATIENT_NAME"),
@@ -283,6 +293,8 @@ def cli_main():
     """CLI entry point for production deployment"""
     parser = argparse.ArgumentParser(description="VM Automation - Production GUI Automation System")
     parser.add_argument("--config", "-c", help="Configuration file path (JSON)")
+    parser.add_argument("--connection", choices=["vnc", "rdp"], default="vnc", 
+                       help="Connection type: vnc or rdp (default: vnc)")
     parser.add_argument("--validate-env", action="store_true", help="Validate environment and exit")
     parser.add_argument(
         "--create-samples", action="store_true", help="Create sample configuration files"
@@ -309,6 +321,11 @@ def cli_main():
         else:
             config = VMConfig.from_env()
             print("✓ Using environment variables and defaults")
+        
+        # Override connection type from CLI if provided
+        if args.connection:
+            config.connection_type = args.connection
+            print(f"✓ Using {args.connection.upper()} connection (CLI override)")
 
         # Run automation
         automation = VMAutomation(config)
@@ -377,8 +394,12 @@ def create_sample_files():
     sample_config = {
         "vm_host": "192.168.1.100",
         "vm_port": 5900,
-        "vm_username": "username",
+        "vm_username": "username", 
         "vm_password": "password",
+        "connection_type": "vnc",
+        "rdp_domain": None,
+        "rdp_width": 1920,
+        "rdp_height": 1080,
         "target_app_name": "MyApp.exe",
         "target_button_text": "Submit",
         "expected_desktop_elements": ["Desktop", "Start", "Taskbar"],

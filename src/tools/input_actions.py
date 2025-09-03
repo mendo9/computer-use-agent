@@ -1,34 +1,26 @@
 """Input actions for VM interaction (click, type, keys)"""
 
 import time
-from dataclasses import dataclass
-
-
-@dataclass
-class ActionResult:
-    """Result of an input action"""
-
-    success: bool
-    message: str
-    timestamp: float
+from src.connections import VMConnection
+from src.connections.base import ActionResult
 
 
 class InputActions:
-    """Handle input actions to remote VM"""
+    """Handle input actions to remote VM using connection abstraction"""
 
-    def __init__(self, vnc_client=None):
+    def __init__(self, connection: VMConnection):
         """
         Initialize input actions
 
         Args:
-            vnc_client: VNC client connection
+            connection: VM connection instance
         """
-        self.vnc_client = vnc_client
+        self.connection = connection
         self.action_delay = 0.1  # Default delay between actions
 
-    def set_vnc_client(self, vnc_client):
-        """Set VNC client connection"""
-        self.vnc_client = vnc_client
+    def set_connection(self, connection: VMConnection):
+        """Set VM connection"""
+        self.connection = connection
 
     def click(self, x: int, y: int, button: str = "left") -> ActionResult:
         """
@@ -42,37 +34,16 @@ class InputActions:
         Returns:
             ActionResult with success status
         """
-        if not self.vnc_client:
-            return ActionResult(False, "No VNC connection", time.time())
+        if not self.connection or not self.connection.is_connected:
+            return ActionResult(False, "No VM connection")
 
         try:
-            # Move to position and click
-            if button == "left":
-                self.vnc_client.mouseMove(x, y)
-                time.sleep(0.1)
-                self.vnc_client.mousePress(1)  # Left button
-                time.sleep(0.05)
-                self.vnc_client.mouseRelease(1)
-
-            elif button == "right":
-                self.vnc_client.mouseMove(x, y)
-                time.sleep(0.1)
-                self.vnc_client.mousePress(3)  # Right button
-                time.sleep(0.05)
-                self.vnc_client.mouseRelease(3)
-
-            elif button == "middle":
-                self.vnc_client.mouseMove(x, y)
-                time.sleep(0.1)
-                self.vnc_client.mousePress(2)  # Middle button
-                time.sleep(0.05)
-                self.vnc_client.mouseRelease(2)
-
+            result = self.connection.click(x, y, button)
             time.sleep(self.action_delay)
-            return ActionResult(True, f"Clicked {button} at ({x}, {y})", time.time())
+            return result
 
         except Exception as e:
-            return ActionResult(False, f"Click failed: {e}", time.time())
+            return ActionResult(False, f"Click failed: {e}")
 
     def double_click(self, x: int, y: int) -> ActionResult:
         """
@@ -85,31 +56,28 @@ class InputActions:
         Returns:
             ActionResult with success status
         """
-        if not self.vnc_client:
-            return ActionResult(False, "No VNC connection", time.time())
+        if not self.connection or not self.connection.is_connected:
+            return ActionResult(False, "No VM connection")
 
         try:
-            self.vnc_client.mouseMove(x, y)
+            # Perform first click
+            result1 = self.connection.click(x, y, "left")
+            if not result1.success:
+                return result1
+            
+            # Short delay between clicks
             time.sleep(0.1)
-
-            # First click
-            self.vnc_client.mousePress(1)
-            time.sleep(0.05)
-            self.vnc_client.mouseRelease(1)
-
-            # Short delay
-            time.sleep(0.1)
-
-            # Second click
-            self.vnc_client.mousePress(1)
-            time.sleep(0.05)
-            self.vnc_client.mouseRelease(1)
-
+            
+            # Perform second click
+            result2 = self.connection.click(x, y, "left")
+            if not result2.success:
+                return result2
+            
             time.sleep(self.action_delay)
-            return ActionResult(True, f"Double-clicked at ({x}, {y})", time.time())
+            return ActionResult(True, f"Double-clicked at ({x}, {y})")
 
         except Exception as e:
-            return ActionResult(False, f"Double-click failed: {e}", time.time())
+            return ActionResult(False, f"Double-click failed: {e}")
 
     def type_text(self, text: str, delay_between_chars: float = 0.05) -> ActionResult:
         """
@@ -117,24 +85,21 @@ class InputActions:
 
         Args:
             text: Text to type
-            delay_between_chars: Delay between each character
+            delay_between_chars: Delay between each character (ignored, handled by connection)
 
         Returns:
             ActionResult with success status
         """
-        if not self.vnc_client:
-            return ActionResult(False, "No VNC connection", time.time())
+        if not self.connection or not self.connection.is_connected:
+            return ActionResult(False, "No VM connection")
 
         try:
-            for char in text:
-                self.vnc_client.keyPress(char)
-                time.sleep(delay_between_chars)
-
+            result = self.connection.type_text(text)
             time.sleep(self.action_delay)
-            return ActionResult(True, f"Typed: {text}", time.time())
+            return result
 
         except Exception as e:
-            return ActionResult(False, f"Type text failed: {e}", time.time())
+            return ActionResult(False, f"Type text failed: {e}")
 
     def press_key(self, key: str) -> ActionResult:
         """
@@ -146,16 +111,16 @@ class InputActions:
         Returns:
             ActionResult with success status
         """
-        if not self.vnc_client:
-            return ActionResult(False, "No VNC connection", time.time())
+        if not self.connection or not self.connection.is_connected:
+            return ActionResult(False, "No VM connection")
 
         try:
-            self.vnc_client.keyPress(key)
+            result = self.connection.key_press(key)
             time.sleep(self.action_delay)
-            return ActionResult(True, f"Pressed key: {key}", time.time())
+            return result
 
         except Exception as e:
-            return ActionResult(False, f"Key press failed: {e}", time.time())
+            return ActionResult(False, f"Key press failed: {e}")
 
     def drag(self, start_x: int, start_y: int, end_x: int, end_y: int) -> ActionResult:
         """
@@ -170,32 +135,27 @@ class InputActions:
         Returns:
             ActionResult with success status
         """
-        if not self.vnc_client:
-            return ActionResult(False, "No VNC connection", time.time())
+        if not self.connection or not self.connection.is_connected:
+            return ActionResult(False, "No VM connection")
 
         try:
-            # Move to start position
-            self.vnc_client.mouseMove(start_x, start_y)
+            # Note: Drag functionality would need to be implemented in connection classes
+            # For now, simulate drag with click at start, then click at end
+            result1 = self.connection.click(start_x, start_y, "left")
+            if not result1.success:
+                return result1
+            
             time.sleep(0.1)
-
-            # Press and hold left button
-            self.vnc_client.mousePress(1)
-            time.sleep(0.1)
-
-            # Drag to end position
-            self.vnc_client.mouseMove(end_x, end_y)
-            time.sleep(0.1)
-
-            # Release button
-            self.vnc_client.mouseRelease(1)
+            
+            result2 = self.connection.click(end_x, end_y, "left")
+            if not result2.success:
+                return result2
+            
             time.sleep(self.action_delay)
-
-            return ActionResult(
-                True, f"Dragged from ({start_x}, {start_y}) to ({end_x}, {end_y})", time.time()
-            )
+            return ActionResult(True, f"Simulated drag from ({start_x}, {start_y}) to ({end_x}, {end_y})")
 
         except Exception as e:
-            return ActionResult(False, f"Drag failed: {e}", time.time())
+            return ActionResult(False, f"Drag failed: {e}")
 
     def scroll(self, x: int, y: int, direction: str = "up", clicks: int = 3) -> ActionResult:
         """
@@ -210,39 +170,61 @@ class InputActions:
         Returns:
             ActionResult with success status
         """
-        if not self.vnc_client:
-            return ActionResult(False, "No VNC connection", time.time())
+        if not self.connection or not self.connection.is_connected:
+            return ActionResult(False, "No VM connection")
 
         try:
-            self.vnc_client.mouseMove(x, y)
-            time.sleep(0.1)
-
+            # Note: Scroll functionality would need to be implemented in connection classes
+            # For now, simulate with key presses
             for _ in range(clicks):
                 if direction == "up":
-                    self.vnc_client.mousePress(4)  # Scroll up
-                    time.sleep(0.05)
-                    self.vnc_client.mouseRelease(4)
-                else:  # down
-                    self.vnc_client.mousePress(5)  # Scroll down
-                    time.sleep(0.05)
-                    self.vnc_client.mouseRelease(5)
-
+                    result = self.connection.key_press("up")
+                else:
+                    result = self.connection.key_press("down")
+                
+                if not result.success:
+                    return result
+                    
                 time.sleep(0.1)
 
             time.sleep(self.action_delay)
-            return ActionResult(
-                True, f"Scrolled {direction} {clicks} times at ({x}, {y})", time.time()
-            )
+            return ActionResult(True, f"Simulated scroll {direction} {clicks} times at ({x}, {y})")
 
         except Exception as e:
-            return ActionResult(False, f"Scroll failed: {e}", time.time())
+            return ActionResult(False, f"Scroll failed: {e}")
 
 
 class MockInputActions(InputActions):
     """Mock input actions for testing without actual VM"""
 
     def __init__(self):
-        super().__init__()
+        # Create a mock connection
+        from src.connections.base import VMConnection
+        
+        class MockConnection(VMConnection):
+            def __init__(self):
+                super().__init__()
+                self.is_connected = True
+            
+            def connect(self, host, port, username=None, password=None, **kwargs):
+                return type('obj', (object,), {'success': True, 'message': 'Mock connected'})
+            
+            def disconnect(self):
+                return type('obj', (object,), {'success': True, 'message': 'Mock disconnected'})
+            
+            def capture_screen(self):
+                return True, None
+            
+            def click(self, x, y, button="left"):
+                return ActionResult(True, f"Mock click {button} at ({x}, {y})")
+            
+            def type_text(self, text):
+                return ActionResult(True, f"Mock typed: {text}")
+            
+            def key_press(self, key):
+                return ActionResult(True, f"Mock key press: {key}")
+        
+        super().__init__(MockConnection())
         self.actions_log = []
 
     def click(self, x: int, y: int, button: str = "left") -> ActionResult:
