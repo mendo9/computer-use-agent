@@ -23,7 +23,8 @@ class VMNavigatorTools:
 
         # Initialize real tools only
         self.screen_capture = ScreenCapture("vnc")
-        self.input_actions = InputActions()
+        # InputActions will be initialized after connection is established
+        self.input_actions = None
 
         # Initialize vision components
         models_dir = Path(__file__).parent.parent / "models"
@@ -52,9 +53,9 @@ class VMNavigatorTools:
                 self.session.is_connected = True
                 self.session.log_action(f"Connected to VM at {self.vm_target.vm_host}")
 
-                # Set up input actions with VNC client
-                if hasattr(self.screen_capture, "vnc_client"):
-                    self.input_actions.set_vnc_client(self.screen_capture.vnc_client)
+                # Set up input actions with the same connection as screen capture
+                if self.screen_capture.connection and self.screen_capture.connection.is_connected:
+                    self.input_actions = InputActions(self.screen_capture.connection)
 
                 return {"success": True, "message": "VM connection established"}
             else:
@@ -211,6 +212,9 @@ class VMNavigatorTools:
                 return {"success": False, "error": "Cannot capture screen before launch"}
 
             # Double-click to launch application
+            if self.input_actions is None:
+                return {"success": False, "error": "Input actions not initialized - connection may have failed"}
+            
             result = self.input_actions.double_click(x, y)
             if not result.success:
                 return {"success": False, "error": result.message}
