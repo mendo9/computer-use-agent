@@ -50,6 +50,18 @@ class RDPConnection(VMConnection):
             display_num = self._find_free_display()
             self.display = f":{display_num}"
 
+            # Ensure X11 socket directory exists (critical for macOS)
+            x11_dir = "/tmp/.X11-unix"
+            if not os.path.exists(x11_dir):
+                try:
+                    os.makedirs(x11_dir, mode=0o1777, exist_ok=True)
+                except PermissionError:
+                    return ConnectionResult(
+                        False,
+                        f"X11 socket directory {x11_dir} does not exist and cannot be created. "
+                        f"Run: sudo mkdir -p {x11_dir} && sudo chmod 1777 {x11_dir}",
+                    )
+
             # Start Xvfb for virtual display
             xvfb_cmd = [
                 "Xvfb",
@@ -64,13 +76,13 @@ class RDPConnection(VMConnection):
 
             try:
                 subprocess.Popen(xvfb_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-                time.sleep(2)  # Wait for Xvfb to start
+                time.sleep(3)  # Wait for Xvfb to start
             except Exception as e:
                 return ConnectionResult(False, f"Failed to start Xvfb: {e}")
 
             # Create temp directory for screenshots
             self.temp_dir = tempfile.mkdtemp(prefix="rdp_capture_")
-            self.screenshot_path = os.path.join(self.temp_dir, "screenshot.png")
+            self.screenshot_path = os.path.join(self.temp_dir, "screenshot.xwd")
 
             # Build FreeRDP command
             rdp_cmd = [
@@ -139,7 +151,7 @@ class RDPConnection(VMConnection):
                     self.rdp_process.wait()
                 self.rdp_process = None
 
-            # Kill Xvfb if we started it
+            # Clean up X11 display and lock file
             if self.display:
                 with contextlib.suppress(builtins.BaseException):
                     subprocess.run(
@@ -147,6 +159,14 @@ class RDPConnection(VMConnection):
                         stdout=subprocess.DEVNULL,
                         stderr=subprocess.DEVNULL,
                     )
+
+                # Remove X11 lock file
+                display_num = self.display.lstrip(":")
+                lock_file = f"/tmp/.X{display_num}-lock"
+                with contextlib.suppress(builtins.BaseException):
+                    if os.path.exists(lock_file):
+                        os.unlink(lock_file)
+
                 self.display = None
 
             # Clean up temp directory
@@ -181,21 +201,23 @@ class RDPConnection(VMConnection):
 
             # Convert xwd to PNG using ImageMagick
             if self.screenshot_path:
-                png_path = self.screenshot_path.replace(".png", "_converted.png")
+                png_path = self.screenshot_path.replace(".xwd", ".png")
+                
+                # Check if ImageMagick convert is available
+                if not shutil.which("convert"):
+                    print("RDP conversion failed: ImageMagick 'convert' not available. Install with: brew install imagemagick")
+                    return False, None
+                
                 convert_cmd = ["convert", self.screenshot_path, png_path]
                 result = subprocess.run(convert_cmd, capture_output=True)
 
                 if result.returncode != 0:
-                    # Fallback: try using xwdtopnm + pnmtopng
-                    try:
-                        pnm_path = self.screenshot_path.replace(".png", ".pnm")
-                        with open(pnm_path, "wb") as f:
-                            subprocess.run(["xwdtopnm", self.screenshot_path], stdout=f, check=True)
-                        with open(png_path, "wb") as f:
-                            subprocess.run(["pnmtopng", pnm_path], stdout=f, check=True)
-                        os.unlink(pnm_path)
-                    except:
-                        return False, None
+                    print(f"RDP conversion failed: {result.stderr.decode().strip()}")
+                    print(f"Command: {' '.join(convert_cmd)}")
+                    print(f"XWD file exists: {os.path.exists(self.screenshot_path)}")
+                    if os.path.exists(self.screenshot_path):
+                        print(f"XWD file size: {os.path.getsize(self.screenshot_path)} bytes")
+                    return False, None
             else:
                 return False, None
 

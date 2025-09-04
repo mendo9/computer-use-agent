@@ -110,6 +110,7 @@ class VMTarget:
     vm_username: str
     vm_password: str
     vm_port: int = 5900
+    connection_type: str = "vnc"
 
     # Application target
     target_app_name: str = "MyApp.exe"  # Desktop application to open
@@ -137,5 +138,5 @@ class VMTarget:
             port=self.vm_port,
             username=self.vm_username,
             password=self.vm_password,
-            connection_type="vnc",
+            connection_type=self.connection_type,
         )

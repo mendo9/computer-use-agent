@@ -22,7 +22,7 @@ class VMNavigatorTools:
         self.vm_target = vm_target
 
         # Initialize real tools only
-        self.screen_capture = ScreenCapture("vnc")
+        self.screen_capture = ScreenCapture(vm_target.connection_type)
         # InputActions will be initialized after connection is established
         self.input_actions = None
 
@@ -46,6 +46,7 @@ class VMNavigatorTools:
             success = self.screen_capture.connect(
                 host=self.vm_target.vm_host,
                 port=self.vm_target.vm_port,
+                username=self.vm_target.vm_username,
                 password=self.vm_target.vm_password,
             )
 

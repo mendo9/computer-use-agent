@@ -7,10 +7,12 @@ A production-ready AI system that automates GUI interactions in Windows VMs with
 ## 🎯 System Overview
 
 **Two specialized AI agents working together:**
+
 - **Agent 1 (VM Navigator)**: Connects to VMs, launches applications, verifies patient safety
 - **Agent 2 (App Controller)**: Performs precise GUI interactions using shared computer vision components
 
 **Key Technologies:**
+
 - **YOLOv8s-ONNX**: Real-time UI element detection 
 - **PaddleOCR**: Text recognition and verification
 - **VNC/RDP Protocol**: Flexible VM connection options
@@ -19,6 +21,7 @@ A production-ready AI system that automates GUI interactions in Windows VMs with
 ## 🚀 Quick Start
 
 ### 1. Setup
+
 ```bash
 # Install dependencies
 uv sync
@@ -30,12 +33,14 @@ uv run src/setup_models.py
 ### 2. Basic Usage
 
 **Simple VM automation:**
+
 ```bash
 # Run with basic configuration
 uv run src/main.py
 ```
 
 **Production usage with configuration:**
+
 ```bash
 # Create sample configuration
 uv run vm-automation --create-samples
@@ -54,6 +59,7 @@ uv run vm-automation --connection vnc
 **Via JSON file (vm_config.json):**
 
 *VNC Configuration:*
+
 ```json
 {
   "vm_host": "192.168.1.100",
@@ -66,6 +72,7 @@ uv run vm-automation --connection vnc
 ```
 
 *RDP Configuration:*
+
 ```json
 {
   "vm_host": "192.168.1.100", 
@@ -82,6 +89,7 @@ uv run vm-automation --connection vnc
 ```
 
 **Via Environment Variables:**
+
 ```bash
 # VNC Connection
 export CONNECTION_TYPE="vnc"
@@ -111,16 +119,19 @@ vm-automation
 The system supports both VNC and RDP connections through a flexible abstraction layer:
 
 ### VNC Connection
+
 - **Use case**: Any VM with VNC server installed
 - **Requirements**: VNC server running on target VM (port 5900)
 - **Advantages**: Lightweight, cross-platform
 - **Setup**: Install VNC server on VM (TightVNC, RealVNC, UltraVNC)
 
-### RDP Connection  
+### RDP Connection
+
 - **Use case**: Windows VMs with Remote Desktop enabled
 - **Requirements**: FreeRDP, Xvfb, xdotool, ImageMagick on automation host
 - **Advantages**: Native Windows protocol, no additional VM setup needed
 - **Setup**: 
+
   ```bash
   sudo apt install freerdp2-x11 xvfb xdotool imagemagick
   ```
@@ -162,6 +173,7 @@ The same computer vision and UI automation logic works seamlessly with both conn
 For healthcare applications, the system includes patient safety verification:
 
 **Configuration with patient safety:**
+
 ```json
 {
   "vm_host": "192.168.1.100",
@@ -178,6 +190,7 @@ For healthcare applications, the system includes patient safety verification:
 ```
 
 **Safety Features:**
+
 - Automatic patient identity verification using OCR
 - Requires 2+ matching patient identifiers before proceeding
 - Immediately stops if patient verification fails
@@ -228,6 +241,7 @@ uv run pytest tests/test_clicking_unit_mocks.py::TestPatientSafetyWithMocks -v
 ```
 
 **Unit tests cover:**
+
 - Click, type, scroll actions with mocks
 - UI element finding and detection
 - OCR text extraction simulation  
@@ -270,6 +284,7 @@ uv run pytest tests/test_vm_integration.py::TestRDPIntegration -v --tb=short
 ```
 
 **Integration tests cover:**
+
 - Direct RDP/VNC connection establishment
 - VM Navigator agent full workflow
 - App Controller agent workflows  
@@ -299,6 +314,7 @@ uv run pytest tests/test_patient_workflow_integration.py::TestPatientWorkflowInt
 ```
 
 **Patient workflow tests cover:**
+
 - PaddleOCR text extraction from patient applications
 - YOLO-based UI element detection
 - Patient search and verification workflows
@@ -310,6 +326,7 @@ uv run pytest tests/test_patient_workflow_integration.py::TestPatientWorkflowInt
 #### Required Environment Variables by Test Type:
 
 **VNC Integration Tests:**
+
 ```bash
 TEST_VNC_HOST=192.168.1.100        # VM IP address
 TEST_VNC_PORT=5900                  # VNC port (default 5900) 
@@ -317,6 +334,7 @@ TEST_VNC_PASSWORD=vnc_password      # VNC password
 ```
 
 **RDP Integration Tests:**
+
 ```bash
 TEST_RDP_HOST=192.168.1.101         # VM IP address
 TEST_RDP_PORT=3389                  # RDP port (default 3389)
@@ -326,6 +344,7 @@ TEST_RDP_DOMAIN=COMPANY             # Domain (optional)
 ```
 
 **Patient Application Tests:**
+
 ```bash
 PATIENT_TEST_VM_HOST=192.168.1.100  # Patient app VM IP
 PATIENT_TEST_VM_PORT=5900           # Connection port
@@ -337,6 +356,7 @@ TEST_PATIENT_MRN=12345678           # Test patient MRN
 ```
 
 **Application Test Parameters:**
+
 ```bash
 TEST_APP_NAME=Calculator.exe        # Target application to launch
 TEST_BUTTON_TEXT=1                  # Target button to click
@@ -384,22 +404,28 @@ This testing approach ensures system reliability while providing flexibility for
 **Connection fails:**
 
 *VNC Issues:*
+
 - Verify VM IP and VNC port (default 5900)
 - Check VNC server is running on target VM
 - Test manual VNC connection first
 
 *RDP Issues:*
+
 - Verify VM IP and RDP port (default 3389)
 - Check RDP is enabled on target VM
-- Install dependencies: `sudo apt install freerdp2-x11 xvfb xdotool imagemagick`
+- Install dependencies:
+  - **Linux**: `sudo apt install freerdp2-x11 xvfb xdotool imagemagick`
+  - **Mac**: `brew install freerdp xquartz imagemagick` (then start XQuartz and set DISPLAY)
 - Test manual RDP connection: `xfreerdp /v:VM_IP /u:username`
 
 **Element not found:**
+
 - Check exact text matching (case-sensitive)
 - Ensure application is fully loaded
 - Try scrolling to make elements visible
 
 **Models not loading:**
+
 ```bash
 # Re-download AI models
 uv run src/setup_models.py
@@ -410,11 +436,13 @@ uv run src/setup_models.py
 The system includes Docker support with connection-specific optimized containers:
 
 ### **Container Options:**
+
 - **`vm-automation:vnc`** - Lightweight VNC-only container
 - **`vm-automation:rdp`** - RDP-optimized with all dependencies
 - **`vm-automation:latest`** - General-purpose (supports both)
 
 ### **Quick Run:**
+
 ```bash
 # Run containers directly
 docker run --rm -it vm-automation:vnc
@@ -424,6 +452,7 @@ docker run --rm -it vm-automation:rdp
 ### **Docker Compose Usage:**
 
 **VNC Connection:**
+
 ```bash
 # Set environment variables
 export VM_HOST=192.168.1.100
@@ -435,6 +464,7 @@ docker compose --profile vnc up
 ```
 
 **RDP Connection:**
+
 ```bash
 # Set environment variables  
 export VM_HOST=192.168.1.100
@@ -448,6 +478,7 @@ docker compose --profile rdp up
 ```
 
 **General-purpose container:**
+
 ```bash
 # Supports both connection types via environment
 export CONNECTION_TYPE=rdp  # or vnc
@@ -455,6 +486,7 @@ docker compose --profile general up
 ```
 
 ### **Production Docker Usage:**
+
 ```bash
 # With config file mount
 docker run --rm -it \
@@ -489,6 +521,7 @@ docker run --rm -it \
 ## ✅ Production Ready
 
 This system is ready for real-world deployment with:
+
 - **Computer Vision**: YOLO + OCR for precise GUI automation
 - **Two-Agent Architecture**: Efficient component sharing
 - **Healthcare Safety**: Optional patient verification

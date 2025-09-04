@@ -2,8 +2,10 @@
 
 import argparse
 import asyncio
+import atexit
 import json
 import os
+import signal
 import sys
 import time
 import uuid
@@ -95,6 +97,7 @@ class VMConfig:
             vm_port=self.vm_port,
             vm_username=self.vm_username or "",
             vm_password=self.vm_password or "",
+            connection_type=self.connection_type,
             target_app_name=self.target_app_name,
             target_button_text=self.target_button_text,
             expected_desktop_elements=self.expected_desktop_elements,
@@ -137,6 +140,14 @@ class VMAutomation:
         self.app_controller = (
             None  # Will be initialized with shared components after VM Navigator runs
         )
+
+        # Track connections for cleanup
+        self._connections_to_cleanup = []
+
+        # Register cleanup handlers
+        atexit.register(self.cleanup)
+        signal.signal(signal.SIGINT, self._signal_handler)
+        signal.signal(signal.SIGTERM, self._signal_handler)
 
         print(f"VM Automation initialized (Session: {self.session_id})")
         print(f"Target VM: {config.vm_host}")
@@ -236,26 +247,35 @@ class VMAutomation:
                 "session_summary": self.session.get_session_summary(),
                 "execution_time": time.time() - start_time,
             }
+        finally:
+            # Always clean up connections regardless of success/failure
+            self.cleanup()
 
     async def run_vm_navigation_only(self) -> dict[str, Any]:
         """Run only the VM navigation phase (for testing)"""
-        self.session.log_action("Running VM Navigation phase only")
-        return await self.vm_navigator.execute_navigation()
+        try:
+            self.session.log_action("Running VM Navigation phase only")
+            return await self.vm_navigator.execute_navigation()
+        finally:
+            self.cleanup()
 
     async def run_app_interaction_only(self) -> dict[str, Any]:
         """Run only the app interaction phase (assumes app is already running)"""
-        # Mark agent 1 as completed for testing
-        self.session.agent_1_completed = True
-        self.session.current_app = self.vm_target.target_app_name
+        try:
+            # Mark agent 1 as completed for testing
+            self.session.agent_1_completed = True
+            self.session.current_app = self.vm_target.target_app_name
 
-        # Initialize app_controller if not initialized
-        if self.app_controller is None:
-            raise RuntimeError(
-                "Cannot run app interaction only without shared components from VM Navigator. Run VM navigation phase first."
-            )
+            # Initialize app_controller if not initialized
+            if self.app_controller is None:
+                raise RuntimeError(
+                    "Cannot run app interaction only without shared components from VM Navigator. Run VM navigation phase first."
+                )
 
-        self.session.log_action("Running App Interaction phase only")
-        return await self.app_controller.execute_button_click_workflow()
+            self.session.log_action("Running App Interaction phase only")
+            return await self.app_controller.execute_button_click_workflow()
+        finally:
+            self.cleanup()
 
     def get_session_log(self) -> dict[str, Any]:
         """Get complete session log and state"""
@@ -287,6 +307,56 @@ class VMAutomation:
 
         print(f"Session log saved to: {filepath}")
         return filepath
+
+    def cleanup(self):
+        """Clean up all connections and resources"""
+        print("\n🧹 Cleaning up connections...")
+        
+        try:
+            # Clean up any tracked connections
+            for connection in self._connections_to_cleanup:
+                try:
+                    if hasattr(connection, 'disconnect'):
+                        result = connection.disconnect()
+                        if result.success:
+                            print(f"✓ {result.message}")
+                        else:
+                            print(f"⚠ {result.message}")
+                    elif hasattr(connection, 'close'):
+                        connection.close()
+                        print("✓ Connection closed")
+                except Exception as e:
+                    print(f"⚠ Error disconnecting: {e}")
+            
+            # Clean up VM Navigator connections
+            if hasattr(self.vm_navigator, 'tools') and self.vm_navigator.tools and hasattr(self.vm_navigator.tools, 'screen_capture'):
+                try:
+                    self.vm_navigator.tools.screen_capture.disconnect()
+                    print("✓ VM Navigator connection cleaned up")
+                except Exception as e:
+                    print(f"⚠ Error cleaning VM Navigator: {e}")
+            
+            # Clean up App Controller connections
+            if self.app_controller and hasattr(self.app_controller, 'tools') and self.app_controller.tools and hasattr(self.app_controller.tools, 'screen_capture'):
+                try:
+                    self.app_controller.tools.screen_capture.disconnect()
+                    print("✓ App Controller connection cleaned up")
+                except Exception as e:
+                    print(f"⚠ Error cleaning App Controller: {e}")
+                    
+        except Exception as e:
+            print(f"⚠ Error during cleanup: {e}")
+
+    def _signal_handler(self, signum, _frame):
+        """Handle interrupt signals"""
+        print(f"\n⏹️ Received signal {signum}, cleaning up...")
+        self.cleanup()
+        sys.exit(1)
+
+    def register_connection(self, connection):
+        """Register a connection for cleanup tracking"""
+        if connection not in self._connections_to_cleanup:
+            self._connections_to_cleanup.append(connection)
 
 
 def cli_main():
