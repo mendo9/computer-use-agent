@@ -20,6 +20,7 @@ class RDPConnection(VMConnection):
     def __init__(self):
         super().__init__()
         self.rdp_process = None
+        self.xvfb_process = None
         self.display = None
         self.temp_dir = None
         self.screenshot_path = None
@@ -50,35 +51,58 @@ class RDPConnection(VMConnection):
             display_num = self._find_free_display()
             self.display = f":{display_num}"
 
-            # Ensure X11 socket directory exists (critical for macOS)
-            x11_dir = "/tmp/.X11-unix"
-            if not os.path.exists(x11_dir):
+            # Check if Xvfb is available (Linux) or use existing display (macOS)
+            if shutil.which("Xvfb"):
+                # Linux: Create virtual display with Xvfb
+                # Ensure X11 socket directory exists (critical for macOS)
+                x11_dir = "/tmp/.X11-unix"
+                if not os.path.exists(x11_dir):
+                    try:
+                        os.makedirs(x11_dir, mode=0o1777, exist_ok=True)
+                    except PermissionError:
+                        return ConnectionResult(
+                            False,
+                            f"X11 socket directory {x11_dir} does not exist and cannot be created. "
+                            f"Run: sudo mkdir -p {x11_dir} && sudo chmod 1777 {x11_dir}",
+                        )
+
+                # Start Xvfb for virtual display
+                xvfb_cmd = [
+                    "Xvfb",
+                    self.display,
+                    "-screen",
+                    "0",
+                    f"{width}x{height}x24",
+                    "-ac",
+                    "+extension",
+                    "GLX",
+                ]
+
                 try:
-                    os.makedirs(x11_dir, mode=0o1777, exist_ok=True)
-                except PermissionError:
+                    self.xvfb_process = subprocess.Popen(
+                        xvfb_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+                    )
+                    time.sleep(3)  # Wait for Xvfb to start
+
+                    # Verify Xvfb is running
+                    if self.xvfb_process.poll() is not None:
+                        return ConnectionResult(False, "Xvfb process died immediately after start")
+
+                except Exception as e:
+                    return ConnectionResult(False, f"Failed to start Xvfb: {e}")
+            else:
+                # macOS: Try to use Xvfb if available via Homebrew, otherwise fail with helpful message
+                if shutil.which("Xvfb") is None:
                     return ConnectionResult(
                         False,
-                        f"X11 socket directory {x11_dir} does not exist and cannot be created. "
-                        f"Run: sudo mkdir -p {x11_dir} && sudo chmod 1777 {x11_dir}",
+                        "RDP on macOS requires isolated X11 display. Install dependencies with:\n"
+                        "brew install freerdp imagemagick xorg-server xdotool\n"
+                        "Alternative: Use VNC connection instead of RDP for better macOS compatibility.",
                     )
-
-            # Start Xvfb for virtual display
-            xvfb_cmd = [
-                "Xvfb",
-                self.display,
-                "-screen",
-                "0",
-                f"{width}x{height}x24",
-                "-ac",
-                "+extension",
-                "GLX",
-            ]
-
-            try:
-                subprocess.Popen(xvfb_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-                time.sleep(3)  # Wait for Xvfb to start
-            except Exception as e:
-                return ConnectionResult(False, f"Failed to start Xvfb: {e}")
+                
+                # If we reach here, Xvfb should be available - this shouldn't happen
+                # because the outer if-condition should have caught it
+                return ConnectionResult(False, "Unexpected Xvfb availability state")
 
             # Create temp directory for screenshots
             self.temp_dir = tempfile.mkdtemp(prefix="rdp_capture_")
@@ -151,8 +175,22 @@ class RDPConnection(VMConnection):
                     self.rdp_process.wait()
                 self.rdp_process = None
 
-            # Clean up X11 display and lock file
-            if self.display:
+            # Clean up Xvfb process
+            if self.xvfb_process:
+                try:
+                    self.xvfb_process.terminate()
+                    try:
+                        self.xvfb_process.wait(timeout=5)
+                    except subprocess.TimeoutExpired:
+                        self.xvfb_process.kill()
+                        self.xvfb_process.wait()
+                except Exception:
+                    pass
+                self.xvfb_process = None
+
+            # Clean up X11 display and lock file (for virtual displays)
+            if self.display and self.display.startswith(":"):
+                # Only clean up if this was a virtual display we created
                 with contextlib.suppress(builtins.BaseException):
                     subprocess.run(
                         ["pkill", "-f", f"Xvfb {self.display}"],
@@ -167,7 +205,7 @@ class RDPConnection(VMConnection):
                     if os.path.exists(lock_file):
                         os.unlink(lock_file)
 
-                self.display = None
+            self.display = None
 
             # Clean up temp directory
             if self.temp_dir and os.path.exists(self.temp_dir):
@@ -198,7 +236,6 @@ class RDPConnection(VMConnection):
             screenshot_methods = [
                 ("scrot", ["scrot", self.screenshot_path]),
                 ("xwd + convert", self._capture_with_xwd_convert),
-                ("python PIL", self._capture_with_pil),
             ]
 
             success = False
@@ -379,42 +416,6 @@ class RDPConnection(VMConnection):
         except Exception:
             return False
 
-    def _capture_with_pil(self, env: dict) -> bool:
-        """Fallback method using PIL/Pillow for X11 screenshot capture"""
-        try:
-            # Try to import PIL for X11 screen capture
-            import platform
-
-            from PIL import ImageGrab
-
-            # Only try this on macOS or if other methods failed
-            if platform.system() != "Darwin":
-                return False
-
-            if not self.screenshot_path:
-                return False
-
-            # Set DISPLAY environment variable
-            old_display = os.environ.get("DISPLAY")
-            os.environ["DISPLAY"] = self.display
-
-            try:
-                # Attempt to grab the screen
-                screenshot = ImageGrab.grab()
-                screenshot.save(self.screenshot_path, "PNG")
-                return True
-            finally:
-                # Restore original DISPLAY
-                if old_display is not None:
-                    os.environ["DISPLAY"] = old_display
-                elif "DISPLAY" in os.environ:
-                    del os.environ["DISPLAY"]
-
-        except ImportError:
-            # PIL not available
-            return False
-        except Exception:
-            return False
 
     def _find_free_display(self) -> int:
         """Find a free X11 display number"""

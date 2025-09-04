@@ -127,13 +127,24 @@ The system supports both VNC and RDP connections through a flexible abstraction 
 
 ### RDP Connection
 
-- **Use case**: Windows VMs with Remote Desktop enabled
+- **Use case**: Windows VMs with Remote Desktop enabled  
 - **Requirements**: FreeRDP, Xvfb, xdotool, ImageMagick on automation host
 - **Advantages**: Native Windows protocol, no additional VM setup needed
+- **Note**: Works best on Linux. For macOS, consider VNC for simpler setup.
 - **Setup**: 
 
+  **Linux:**
   ```bash
-  sudo apt install freerdp2-x11 xvfb xdotool imagemagick
+  sudo apt install freerdp2-x11 xvfb xdotool imagemagick scrot
+  ```
+  
+  **macOS:**
+  ```bash
+  # Core RDP dependencies
+  brew install freerdp imagemagick xorg-server xdotool
+  
+  # Optional: Install scrot for better screenshot performance (if available)
+  brew install scrot || echo "scrot not available, will use xwd fallback"
   ```
 
 The same computer vision and UI automation logic works seamlessly with both connection types.
@@ -415,8 +426,9 @@ This testing approach ensures system reliability while providing flexibility for
 - Check RDP is enabled on target VM
 - Install dependencies:
   - **Linux**: `sudo apt install freerdp2-x11 xvfb xdotool imagemagick scrot`
-  - **Mac**: `brew install freerdp imagemagick && brew install --cask xquartz` (then start XQuartz and set DISPLAY)
-    - Note: XQuartz provides xwd for screenshots, scrot not available on macOS
+  - **Mac**: `brew install freerdp imagemagick xorg-server xdotool xinit` (for isolated X11 display)
+    - Note: Requires Xvfb from xorg-server for proper VM display isolation
+    - May need additional setup if ImageMagick lacks XWD format support
 - Test manual RDP connection: `xfreerdp /v:VM_IP /u:username`
 
 **Element not found:**
