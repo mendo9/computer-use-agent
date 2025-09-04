@@ -3,7 +3,7 @@
   "vm_port": 5900,
   "vm_username": "username",
   "vm_password": "password",
-  "target_app_name": "MyApp.exe",
+  "target_app_name": "Greenway Dev",
   "target_button_text": "Submit",
   "expected_desktop_elements": [
     "Desktop",

@@ -3,6 +3,11 @@
 .env
 __pycache__/
 *.pyc
+.mypy_cache
+.deepeval
+.pytest_cache
+.claude
+.ruff_cache
 
 # Builds
 dist/
@@ -15,7 +20,7 @@ htmlcov/
 
 # OS / IDE
 .DS_Store
-.vscode/
 .idea/
 
 /**/vm_session*.json
+vm_config.json

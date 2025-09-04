@@ -54,6 +54,16 @@ skip-magic-trailing-comma = false
 [tool.pytest.ini_options]
 addopts = "-q"
 testpaths = ["tests"]
+markers = [
+  "integration: marks tests as integration tests (require VM connection)",
+  "mock: marks tests as using mock components (no VM required)",
+  "slow: marks tests as slow running",
+  "vnc: marks tests as VNC-specific integration tests",
+  "rdp: marks tests as RDP-specific integration tests",
+  "patient_workflow: marks tests as patient workflow tests (healthcare applications)",
+  "ui_detection: marks tests as UI detection tests (YOLO/OCR)",
+  "real_vm: marks tests as requiring real VM connections",
+]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src"]

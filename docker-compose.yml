@@ -1,0 +1,94 @@
+# Docker Compose for VM Automation with different connection types
+version: '3.8'
+
+services:
+  # VNC-optimized container (lightweight)
+  vm-automation-vnc:
+    build:
+      context: .
+      dockerfile: Dockerfile.vnc
+    container_name: vm-automation-vnc
+    environment:
+      - CONNECTION_TYPE=vnc
+      - VM_HOST=${VM_HOST:-192.168.1.100}
+      - VM_PORT=${VM_PORT:-5900}
+      - VM_PASSWORD=${VM_PASSWORD:-}
+      - TARGET_APP=${TARGET_APP:-Greenway Dev}
+      - TARGET_BUTTON=${TARGET_BUTTON:-Submit}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - SAVE_SCREENSHOTS=${SAVE_SCREENSHOTS:-true}
+    volumes:
+      - ./vm_config.json:/app/vm_config.json:ro
+      - ./logs:/app/logs
+      - ./screenshots:/app/screenshots
+    profiles:
+      - vnc
+
+  # RDP-optimized container (with all RDP dependencies)
+  vm-automation-rdp:
+    build:
+      context: .
+      dockerfile: Dockerfile.rdp
+    container_name: vm-automation-rdp
+    environment:
+      - CONNECTION_TYPE=rdp
+      - VM_HOST=${VM_HOST:-192.168.1.100}
+      - VM_PORT=${VM_PORT:-3389}
+      - VM_USERNAME=${VM_USERNAME:-}
+      - VM_PASSWORD=${VM_PASSWORD:-}
+      - RDP_DOMAIN=${RDP_DOMAIN:-}
+      - RDP_WIDTH=${RDP_WIDTH:-1920}
+      - RDP_HEIGHT=${RDP_HEIGHT:-1080}
+      - TARGET_APP=${TARGET_APP:-Greenway Dev}
+      - TARGET_BUTTON=${TARGET_BUTTON:-Submit}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - SAVE_SCREENSHOTS=${SAVE_SCREENSHOTS:-true}
+      - DISPLAY=:99
+    volumes:
+      - ./vm_config.json:/app/vm_config.json:ro
+      - ./logs:/app/logs
+      - ./screenshots:/app/screenshots
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+    tmpfs:
+      - /tmp/rdp_capture:noexec,nosuid,size=100m
+    profiles:
+      - rdp
+    privileged: false
+    # Add capabilities for X11 forwarding
+    cap_add:
+      - SYS_ADMIN
+
+  # General-purpose container (supports both VNC and RDP)
+  vm-automation:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: vm-automation-general
+    environment:
+      - CONNECTION_TYPE=${CONNECTION_TYPE:-vnc}
+      - VM_HOST=${VM_HOST:-192.168.1.100}
+      - VM_PORT=${VM_PORT:-5900}
+      - VM_USERNAME=${VM_USERNAME:-}
+      - VM_PASSWORD=${VM_PASSWORD:-}
+      - RDP_DOMAIN=${RDP_DOMAIN:-}
+      - RDP_WIDTH=${RDP_WIDTH:-1920}
+      - RDP_HEIGHT=${RDP_HEIGHT:-1080}
+      - TARGET_APP=${TARGET_APP:-Greenway Dev}
+      - TARGET_BUTTON=${TARGET_BUTTON:-Submit}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - SAVE_SCREENSHOTS=${SAVE_SCREENSHOTS:-true}
+    volumes:
+      - ./vm_config.json:/app/vm_config.json:ro
+      - ./logs:/app/logs
+      - ./screenshots:/app/screenshots
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+    tmpfs:
+      - /tmp/rdp_capture:noexec,nosuid,size=100m
+    profiles:
+      - general
+
+volumes:
+  logs:
+    driver: local
+  screenshots:
+    driver: local

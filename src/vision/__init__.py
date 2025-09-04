@@ -1,11 +1,7 @@
 """Vision module for UI element detection and OCR"""
 
-from .yolo_detector import YOLODetector, Detection
 from .ocr_reader import OCRReader, TextDetection
-from .ui_finder import UIFinder, UIElement
+from .ui_finder import UIElement, UIFinder
+from .yolo_detector import Detection, YOLODetector
 
-__all__ = [
-    "YOLODetector", "Detection",
-    "OCRReader", "TextDetection", 
-    "UIFinder", "UIElement"
-]
+__all__ = ["Detection", "OCRReader", "TextDetection", "UIElement", "UIFinder", "YOLODetector"]

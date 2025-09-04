@@ -1,0 +1,25 @@
+"""VM Connection abstraction layer"""
+
+from .base import ActionResult, ConnectionResult, VMConnection
+from .rdp_connection import RDPConnection
+from .vnc_connection import VNCConnection
+
+
+def create_connection(connection_type: str) -> VMConnection:
+    """Factory function to create connection based on type"""
+    if connection_type.lower() == "vnc":
+        return VNCConnection()
+    elif connection_type.lower() == "rdp":
+        return RDPConnection()
+    else:
+        raise ValueError(f"Unsupported connection type: {connection_type}")
+
+
+__all__ = [
+    "ActionResult",
+    "ConnectionResult",
+    "RDPConnection",
+    "VMConnection",
+    "VNCConnection",
+    "create_connection",
+]
