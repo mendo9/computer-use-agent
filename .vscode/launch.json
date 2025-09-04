@@ -1,0 +1,79 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "VM Automation - RDP",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/main.py",
+            "args": [
+                "--connection",
+                "rdp"
+            ],
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}/src",
+                "VM_PORT": "3389",
+                "CONNECTION_TYPE": "rdp",
+                "RDP_WIDTH": "1920",
+                "RDP_HEIGHT": "1080",
+                "LOG_LEVEL": "DEBUG",
+                "SAVE_SCREENSHOTS": "true"
+            },
+            "stopOnEntry": false,
+            "justMyCode": false
+        },
+        {
+            "name": "VM Automation - RDP with Config File",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/main.py",
+            "args": [
+                "--config",
+                "vm_config.json",
+                "--connection",
+                "rdp"
+            ],
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}/src"
+            },
+            "stopOnEntry": false,
+            "justMyCode": false
+        },
+        {
+            "name": "VM Automation - Validate Environment",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/main.py",
+            "args": [
+                "--validate-env"
+            ],
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}/src"
+            },
+            "stopOnEntry": false,
+            "justMyCode": false
+        },
+        {
+            "name": "VM Automation - Create Samples",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/main.py",
+            "args": [
+                "--create-samples"
+            ],
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}/src"
+            },
+            "stopOnEntry": false,
+            "justMyCode": false
+        }
+    ]
+}
