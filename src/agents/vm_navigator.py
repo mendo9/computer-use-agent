@@ -213,8 +213,11 @@ class VMNavigatorTools:
 
             # Double-click to launch application
             if self.input_actions is None:
-                return {"success": False, "error": "Input actions not initialized - connection may have failed"}
-            
+                return {
+                    "success": False,
+                    "error": "Input actions not initialized - connection may have failed",
+                }
+
             result = self.input_actions.double_click(x, y)
             if not result.success:
                 return {"success": False, "error": result.message}

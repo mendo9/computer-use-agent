@@ -19,10 +19,6 @@ class InputActions:
         self.connection = connection
         self.action_delay = 0.1  # Default delay between actions
 
-    def set_connection(self, connection: VMConnection):
-        """Set VM connection"""
-        self.connection = connection
-
     def click(self, x: int, y: int, button: str = "left") -> ActionResult:
         """
         Click at specific coordinates
@@ -195,87 +191,3 @@ class InputActions:
 
         except Exception as e:
             return ActionResult(False, f"Scroll failed: {e}")
-
-
-class MockInputActions(InputActions):
-    """Mock input actions for testing without actual VM"""
-
-    def __init__(self):
-        # Create a mock connection
-        from src.connections.base import VMConnection
-
-        class MockConnection(VMConnection):
-            def __init__(self):
-                super().__init__()
-                self.is_connected = True
-
-            def connect(self, host, port, username=None, password=None, **kwargs):
-                return type("obj", (object,), {"success": True, "message": "Mock connected"})
-
-            def disconnect(self):
-                return type("obj", (object,), {"success": True, "message": "Mock disconnected"})
-
-            def capture_screen(self):
-                return True, None
-
-            def click(self, x, y, button="left"):
-                return ActionResult(True, f"Mock click {button} at ({x}, {y})")
-
-            def type_text(self, text):
-                return ActionResult(True, f"Mock typed: {text}")
-
-            def key_press(self, key):
-                return ActionResult(True, f"Mock key press: {key}")
-
-        super().__init__(MockConnection())
-        self.actions_log = []
-
-    def click(self, x: int, y: int, button: str = "left") -> ActionResult:
-        """Mock click action"""
-        action = f"Click {button} at ({x}, {y})"
-        self.actions_log.append(action)
-        print(f"Mock: {action}")
-        return ActionResult(True, action, time.time())
-
-    def double_click(self, x: int, y: int) -> ActionResult:
-        """Mock double-click action"""
-        action = f"Double-click at ({x}, {y})"
-        self.actions_log.append(action)
-        print(f"Mock: {action}")
-        return ActionResult(True, action, time.time())
-
-    def type_text(self, text: str, delay_between_chars: float = 0.05) -> ActionResult:
-        """Mock type text action"""
-        action = f"Type: {text}"
-        self.actions_log.append(action)
-        print(f"Mock: {action}")
-        return ActionResult(True, action, time.time())
-
-    def press_key(self, key: str) -> ActionResult:
-        """Mock key press action"""
-        action = f"Press key: {key}"
-        self.actions_log.append(action)
-        print(f"Mock: {action}")
-        return ActionResult(True, action, time.time())
-
-    def drag(self, start_x: int, start_y: int, end_x: int, end_y: int) -> ActionResult:
-        """Mock drag action"""
-        action = f"Drag from ({start_x}, {start_y}) to ({end_x}, {end_y})"
-        self.actions_log.append(action)
-        print(f"Mock: {action}")
-        return ActionResult(True, action, time.time())
-
-    def scroll(self, x: int, y: int, direction: str = "up", clicks: int = 3) -> ActionResult:
-        """Mock scroll action"""
-        action = f"Scroll {direction} {clicks} times at ({x}, {y})"
-        self.actions_log.append(action)
-        print(f"Mock: {action}")
-        return ActionResult(True, action, time.time())
-
-    def get_actions_log(self) -> list[str]:
-        """Get log of all mock actions"""
-        return self.actions_log.copy()
-
-    def clear_log(self):
-        """Clear actions log"""
-        self.actions_log.clear()

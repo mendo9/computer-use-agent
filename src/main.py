@@ -40,8 +40,8 @@ class VMConfig:
     patient_dob: str | None = None
 
     # Expected UI Elements
-    expected_desktop_elements: list = None
-    expected_app_elements: list = None
+    expected_desktop_elements: list | None = None
+    expected_app_elements: list | None = None
 
     # Timeouts (seconds)
     vm_connection_timeout: int = 30

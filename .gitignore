@@ -3,6 +3,11 @@
 .env
 __pycache__/
 *.pyc
+.mypy_cache
+.deepeval
+.pytest_cache
+.claude
+.ruff_cache
 
 # Builds
 dist/

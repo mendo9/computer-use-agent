@@ -22,7 +22,14 @@ class MockScreenCapture(ScreenCapture):
         self.mock_sequence = []  # Sequence of screens to return
         self.capture_count = 0
 
-    def connect(self, host: str, port: int = 5900, password: str | None = None) -> bool:
+    def connect(
+        self,
+        host: str,
+        port: int = 5900,
+        password: str | None = None,
+        username: str | None = None,
+        **kwargs,
+    ) -> bool:
         """Mock connection always succeeds"""
         self.is_connected = True
         print(f"Mock connection to {host}:{port} (for testing)")
@@ -124,7 +131,37 @@ class MockInputActions(InputActions):
     """Mock input actions for testing without actual VM"""
 
     def __init__(self):
-        super().__init__()
+        # Create a mock connection for the parent class
+        from src.connections.base import ActionResult, VMConnection
+
+        class MockConnection(VMConnection):
+            def __init__(self):
+                super().__init__()
+                self.is_connected = True
+
+            def connect(self, host, port, username=None, password=None, **kwargs):
+                from src.connections.base import ConnectionResult
+
+                return ConnectionResult(True, "Mock connected")
+
+            def disconnect(self):
+                from src.connections.base import ConnectionResult
+
+                return ConnectionResult(True, "Mock disconnected")
+
+            def capture_screen(self):
+                return True, None
+
+            def click(self, x, y, button="left"):
+                return ActionResult(True, f"Mock click {button} at ({x}, {y})")
+
+            def type_text(self, text):
+                return ActionResult(True, f"Mock typed: {text}")
+
+            def key_press(self, key):
+                return ActionResult(True, f"Mock key press: {key}")
+
+        super().__init__(MockConnection())
         self.actions_log = []
         self.should_fail = False  # For testing error scenarios
 
@@ -197,6 +234,7 @@ class MockUIFinder:
     def __init__(self):
         self.elements_to_find = {}  # Dict of text -> UIElement
         self.should_fail_searches = []  # List of texts that should fail
+        self.ocr_reader: MockOCRReader | None = None  # Will be set by create_mock_components
 
     def find_element_by_text(self, screenshot, text) -> list[UIElement]:
         """Mock element finding by text"""
@@ -256,7 +294,7 @@ class MockUIFinder:
             )
         ]
 
-    def find_ui_elements(self, screenshot) -> list[UIElement]:
+    def find_ui_elements(self, _screenshot) -> list[UIElement]:
         """Mock finding all UI elements"""
         return [
             UIElement(
@@ -280,7 +318,7 @@ class MockUIFinder:
             ),
         ]
 
-    def find_clickable_elements(self, screenshot) -> list[UIElement]:
+    def find_clickable_elements(self, _screenshot) -> list[UIElement]:
         """Mock finding clickable elements"""
         return [
             UIElement(
@@ -329,13 +367,13 @@ class MockOCRReader:
         ]
 
     def read_field_value(
-        self, image: np.ndarray, field_region: tuple[int, int, int, int]
+        self, _image: np.ndarray, _field_region: tuple[int, int, int, int]
     ) -> str | None:
         """Mock field value reading"""
         # Return mock field values based on region
         return "Mock field value"
 
-    def find_text(self, image: np.ndarray, target_text: str, threshold: float = 0.8):
+    def find_text(self, image: np.ndarray, target_text: str, _threshold: float = 0.8):
         """Mock text finding"""
         mock_detections = self.read_text(image)
         return [det for det in mock_detections if target_text.lower() in det.text.lower()]
@@ -367,7 +405,7 @@ class MockVerifier:
     def __init__(self):
         self.should_fail_verifications = []  # List of verification types that should fail
 
-    def verify_page_loaded(self, screenshot, indicators, timeout=5) -> VerificationResult:
+    def verify_page_loaded(self, _screenshot, indicators, _timeout=5) -> VerificationResult:
         """Mock page load verification"""
         if "page_load" in self.should_fail_verifications:
             return VerificationResult(False, "Mock page load verification failed", 0.1)
@@ -379,14 +417,14 @@ class MockVerifier:
             len(found_indicators) > 0, f"Mock verification: found {found_indicators}", 0.9
         )
 
-    def verify_click_success(self, before, after, expected="any") -> VerificationResult:
+    def verify_click_success(self, _before, _after, _expected="any") -> VerificationResult:
         """Mock click verification"""
         if "click_success" in self.should_fail_verifications:
             return VerificationResult(False, "Mock click verification failed", 0.1)
 
         return VerificationResult(True, "Mock click verified", 0.9)
 
-    def verify_element_present(self, screenshot, description) -> VerificationResult:
+    def verify_element_present(self, _screenshot, description) -> VerificationResult:
         """Mock element presence verification"""
         if "element_present" in self.should_fail_verifications:
             return VerificationResult(False, f"Mock element not found: {description}", 0.1)

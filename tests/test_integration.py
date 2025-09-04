@@ -225,7 +225,7 @@ def test_poc_configuration_validation(mock_poc_target):
     assert poc.session_id is not None
 
     # Test session state initialization
-    assert poc.session.is_connected == False
+    assert not poc.session.is_connected
     assert poc.session.current_app is None
     assert len(poc.session.screenshots) == 0
     assert len(poc.session.action_log) == 0

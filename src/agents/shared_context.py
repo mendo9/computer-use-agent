@@ -53,7 +53,7 @@ class VMSession:
     errors: list[str] = field(default_factory=list)
     retry_count: int = 0
 
-    def add_screenshot(self, image: np.ndarray, description: str = None):
+    def add_screenshot(self, image: np.ndarray, description: str | None = None):
         """Add screenshot to session history"""
         if image is not None:
             height, width = image.shape[:2]

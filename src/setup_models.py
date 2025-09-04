@@ -59,7 +59,7 @@ def main():
     yolo_path = setup_yolo_onnx()
 
     # Setup PaddleOCR
-    ocr = setup_paddle_ocr()
+    setup_paddle_ocr()
 
     # Test basic functionality
     print("\nTesting model setup...")
@@ -68,7 +68,7 @@ def main():
     try:
         import onnxruntime as ort
 
-        session = ort.InferenceSession(str(yolo_path))
+        ort.InferenceSession(str(yolo_path))
         print("✓ YOLOv8s ONNX model loads successfully")
     except Exception as e:
         print(f"✗ YOLOv8s ONNX model loading failed: {e}")

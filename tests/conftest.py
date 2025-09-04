@@ -114,7 +114,7 @@ def phoenix_tracer():
         from phoenix.trace import trace
 
         # Start Phoenix session
-        session = px.launch_app()
+        px.launch_app()
 
         @trace
         def traced_test(test_name: str):

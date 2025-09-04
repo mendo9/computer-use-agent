@@ -1,5 +1,7 @@
 """RDP connection implementation using FreeRDP + X11 forwarding"""
 
+import builtins
+import contextlib
 import os
 import shutil
 import subprocess
@@ -139,14 +141,12 @@ class RDPConnection(VMConnection):
 
             # Kill Xvfb if we started it
             if self.display:
-                try:
+                with contextlib.suppress(builtins.BaseException):
                     subprocess.run(
                         ["pkill", "-f", f"Xvfb {self.display}"],
                         stdout=subprocess.DEVNULL,
                         stderr=subprocess.DEVNULL,
                     )
-                except:
-                    pass
                 self.display = None
 
             # Clean up temp directory
