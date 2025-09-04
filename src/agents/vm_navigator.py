@@ -106,6 +106,81 @@ class VMNavigatorTools:
 
         return {"success": False, "error": "Failed to capture screen after retries"}
 
+    def handle_intermediate_screen(self, timeout: int = 30) -> dict[str, Any]:
+        """Handle optional intermediate screen (like login confirmation, click OK dialog, etc.)"""
+        try:
+            self.session.log_action("Checking for intermediate screen (optional)...")
+            start_time = time.time()
+
+            acceptable_use_found = False
+            while time.time() - start_time < timeout:
+                screenshot = self.screen_capture.capture_screen()
+                if screenshot is None:
+                    time.sleep(2.0)
+                    continue
+
+                self.session.add_screenshot(screenshot, "Intermediate screen check")
+
+                # First check if this is an Acceptable Use screen
+
+                elements = self.ui_finder.find_element_by_text(screenshot, "Acceptable Use")
+                if elements:
+                    best_element = max(elements, key=lambda x: x.confidence)
+                    if best_element.confidence > 0.7:
+                        self.session.log_action("Found Acceptable Use screen")
+                        acceptable_use_found = True
+                        break
+
+                # If Acceptable Use screen found, look specifically for OK button to click
+                if acceptable_use_found:
+                    ok_elements = self.ui_finder.find_element_by_text(screenshot, "OK")
+                    if ok_elements:
+                        best_ok = max(ok_elements, key=lambda x: x.confidence)
+                        if best_ok.confidence > 0.7:
+                            if self.input_actions is None:
+                                return {"success": False, "error": "Input actions not initialized"}
+
+                            x, y = best_ok.center
+                            self.session.log_action(
+                                f"Clicking OK button at ({x}, {y}) on Acceptable Use screen"
+                            )
+                            result = self.input_actions.click(x, y)
+
+                            if result.success:
+                                self.session.log_action(
+                                    "Successfully clicked OK on Acceptable Use screen"
+                                )
+                                time.sleep(3.0)  # Wait for screen transition
+                                return {
+                                    "success": True,
+                                    "message": "Handled Acceptable Use screen: clicked OK",
+                                }
+                            else:
+                                self.session.log_action(f"Failed to click OK: {result.message}")
+
+                # If no intermediate elements found, check if desktop is already loaded
+                if self.vm_target.expected_desktop_elements:
+                    result = self.verifier.verify_page_loaded(
+                        screenshot, self.vm_target.expected_desktop_elements, timeout=2
+                    )
+                    if result.success:
+                        self.session.log_action("Desktop already loaded, no intermediate screen")
+                        return {"success": True, "message": "No intermediate screen, desktop ready"}
+
+                # Wait before next check
+                time.sleep(2.0)
+
+            # Timeout reached - assume no intermediate screen
+            self.session.log_action(
+                "No intermediate screen found within timeout - proceeding to desktop"
+            )
+            return {"success": True, "message": "No intermediate screen detected"}
+
+        except Exception as e:
+            error_msg = f"Intermediate screen handling error: {e!s}"
+            self.session.add_error(error_msg)
+            return {"success": False, "error": error_msg}
+
     def wait_for_desktop_loaded(self, timeout: int = 60) -> dict[str, Any]:
         """Wait for desktop to load with proper timeout handling"""
         try:
@@ -455,6 +530,7 @@ class VMNavigatorAgent:
                     "Capture initial screen",
                     lambda: self.tools.capture_screen_with_retry("Initial desktop"),
                 ),
+                ("Handle intermediate screen", self.tools.handle_intermediate_screen),
                 ("Wait for desktop", self.tools.wait_for_desktop_loaded),
                 (
                     "Find application",
