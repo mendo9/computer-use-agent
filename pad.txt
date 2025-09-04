@@ -3,3 +3,15 @@ convert: no images defined `/var/folders/yn/mpx5gmfd4ng_wr4j8hl_157c0000gp/T/rdp
 Command: convert /var/folders/yn/mpx5gmfd4ng_wr4j8hl_157c0000gp/T/rdp_capture_8a2l7ba9/screenshot.png /var/folders/yn/mpx5gmfd4ng_wr4j8hl_157c0000gp/T/rdp_capture_8a2l7ba9/screenshot_converted.png
 XWD file exists: True
 XWD file size: 8297579 bytes
+
+
+convert: no decode delegate for this image format `/var/folders/yn/mpx5gmfd4ng_wr4j8hl_157c0000gp/T/rdp_capture_5bn8li18/screenshot.xwd' @ error/constitute.c/ReadImage/746.
+convert: no images defined `/var/folders/yn/mpx5gmfd4ng_wr4j8hl_157c0000gp/T/rdp_capture_5bn8li18/screenshot.png' @ error/deprecate.c/ConvertImageCommand/3368.
+Command: convert /var/folders/yn/mpx5gmfd4ng_wr4j8hl_157c0000gp/T/rdp_capture_5bn8li18/screenshot.xwd /var/folders/yn/mpx5gmfd4ng_wr4j8hl_157c0000gp/T/rdp_capture_5bn8li18/screenshot.png
+XWD file exists: True
+XWD file size: 8297579 bytes
+
+
+The convert is failing
+b'WARNING: The convert command is deprecated in IMv7, use "magick" instead of "convert" or "magick convert"\n\nconvert: no decode delegate for this image format `/var/folders/yn/mpx5gmfd4ng_wr4j8hl_157c0000gp/T/rdp_capture_kcpkcdwv/screenshot.xwd\' @ error/constitute.c/ReadImage/746.\nconvert: no images defined `/var/folders/yn/mpx5gmfd4ng_wr4j8hl_157c0000gp/T/rdp_capture_kcpkcdwv/screenshot.png\' @ error/deprecate.c/ConvertImageCommand/3368.\n'
+

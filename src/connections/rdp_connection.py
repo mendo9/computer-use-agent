@@ -82,7 +82,7 @@ class RDPConnection(VMConnection):
 
             # Create temp directory for screenshots
             self.temp_dir = tempfile.mkdtemp(prefix="rdp_capture_")
-            self.screenshot_path = os.path.join(self.temp_dir, "screenshot.xwd")
+            self.screenshot_path = os.path.join(self.temp_dir, "screenshot.png")
 
             # Build FreeRDP command
             rdp_cmd = [
@@ -188,43 +188,53 @@ class RDPConnection(VMConnection):
             return False, None
 
         try:
-            # Use xwd to capture screenshot
             env = os.environ.copy()
             env["DISPLAY"] = self.display
 
-            # Capture to temporary file
-            cmd = ["xwd", "-root", "-out", self.screenshot_path]
-            result = subprocess.run(cmd, env=env, capture_output=True)
-
-            if result.returncode != 0:
+            if not self.screenshot_path:
                 return False, None
 
-            # Convert xwd to PNG using ImageMagick
-            if self.screenshot_path:
-                png_path = self.screenshot_path.replace(".xwd", ".png")
-                
-                # Check if ImageMagick convert is available
-                if not shutil.which("convert"):
-                    print("RDP conversion failed: ImageMagick 'convert' not available. Install with: brew install imagemagick")
-                    return False, None
-                
-                convert_cmd = ["convert", self.screenshot_path, png_path]
-                result = subprocess.run(convert_cmd, capture_output=True)
+            # Try screenshot methods in order of preference
+            screenshot_methods = [
+                ("scrot", ["scrot", self.screenshot_path]),
+                ("xwd + convert", self._capture_with_xwd_convert),
+                ("python PIL", self._capture_with_pil),
+            ]
 
-                if result.returncode != 0:
-                    print(f"RDP conversion failed: {result.stderr.decode().strip()}")
-                    print(f"Command: {' '.join(convert_cmd)}")
-                    print(f"XWD file exists: {os.path.exists(self.screenshot_path)}")
-                    if os.path.exists(self.screenshot_path):
-                        print(f"XWD file size: {os.path.getsize(self.screenshot_path)} bytes")
-                    return False, None
-            else:
+            success = False
+            for method_name, cmd_or_func in screenshot_methods:
+                try:
+                    if callable(cmd_or_func):
+                        # Special handling for xwd+convert method
+                        success = cmd_or_func(env)
+                    else:
+                        # Check if command is available
+                        if not shutil.which(cmd_or_func[0]):
+                            continue
+
+                        result = subprocess.run(cmd_or_func, env=env, capture_output=True)
+                        if result.returncode == 0:
+                            success = True
+                        else:
+                            print(
+                                f"RDP capture method '{method_name}' failed: {result.stderr.decode().strip()}"
+                            )
+
+                    if success:
+                        break
+
+                except Exception as e:
+                    print(f"RDP capture method '{method_name}' error: {e}")
+                    continue
+
+            if not success:
+                print("RDP capture failed: No working screenshot method available")
                 return False, None
 
             # Load image with OpenCV
-            if os.path.exists(png_path):
-                image = cv2.imread(png_path)
-                os.unlink(png_path)  # Clean up
+            if os.path.exists(self.screenshot_path):
+                image = cv2.imread(self.screenshot_path)
+                os.unlink(self.screenshot_path)  # Clean up
                 if image is not None:
                     return True, image
 
@@ -317,6 +327,94 @@ class RDPConnection(VMConnection):
 
         except Exception as e:
             return ActionResult(False, f"RDP key press error: {e}")
+
+    def _capture_with_xwd_convert(self, env: dict) -> bool:
+        """Fallback method using xwd + convert/magick for screenshot capture"""
+        if not shutil.which("xwd"):
+            return False
+
+        # Check for both ImageMagick v6 (convert) and v7 (magick)
+        convert_cmd = None
+        if shutil.which("magick"):
+            convert_cmd = "magick"
+        elif shutil.which("convert"):
+            convert_cmd = "convert"
+        else:
+            return False
+
+        if not self.screenshot_path:
+            return False
+
+        try:
+            # Create temporary XWD file
+            xwd_path = self.screenshot_path.replace(".png", ".xwd")
+
+            # Capture with xwd
+            xwd_cmd = ["xwd", "-root", "-out", xwd_path]
+            result = subprocess.run(xwd_cmd, env=env, capture_output=True)
+            if result.returncode != 0:
+                return False
+
+            # Convert to PNG using appropriate ImageMagick command
+            if convert_cmd == "magick":
+                img_cmd = ["magick", xwd_path, self.screenshot_path]
+            else:
+                img_cmd = ["convert", xwd_path, self.screenshot_path]
+
+            result = subprocess.run(img_cmd, capture_output=True)
+
+            # Clean up XWD file
+            if os.path.exists(xwd_path):
+                os.unlink(xwd_path)
+
+            # If conversion failed due to XWD format support, return False
+            if result.returncode != 0:
+                stderr = result.stderr.decode().lower()
+                if "no decode delegate" in stderr and "xwd" in stderr:
+                    print("ImageMagick XWD format support not available")
+                return False
+
+            return True
+
+        except Exception:
+            return False
+
+    def _capture_with_pil(self, env: dict) -> bool:
+        """Fallback method using PIL/Pillow for X11 screenshot capture"""
+        try:
+            # Try to import PIL for X11 screen capture
+            import platform
+
+            from PIL import ImageGrab
+
+            # Only try this on macOS or if other methods failed
+            if platform.system() != "Darwin":
+                return False
+
+            if not self.screenshot_path:
+                return False
+
+            # Set DISPLAY environment variable
+            old_display = os.environ.get("DISPLAY")
+            os.environ["DISPLAY"] = self.display
+
+            try:
+                # Attempt to grab the screen
+                screenshot = ImageGrab.grab()
+                screenshot.save(self.screenshot_path, "PNG")
+                return True
+            finally:
+                # Restore original DISPLAY
+                if old_display is not None:
+                    os.environ["DISPLAY"] = old_display
+                elif "DISPLAY" in os.environ:
+                    del os.environ["DISPLAY"]
+
+        except ImportError:
+            # PIL not available
+            return False
+        except Exception:
+            return False
 
     def _find_free_display(self) -> int:
         """Find a free X11 display number"""

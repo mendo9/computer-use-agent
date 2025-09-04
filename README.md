@@ -414,8 +414,9 @@ This testing approach ensures system reliability while providing flexibility for
 - Verify VM IP and RDP port (default 3389)
 - Check RDP is enabled on target VM
 - Install dependencies:
-  - **Linux**: `sudo apt install freerdp2-x11 xvfb xdotool imagemagick`
-  - **Mac**: `brew install freerdp xquartz imagemagick` (then start XQuartz and set DISPLAY)
+  - **Linux**: `sudo apt install freerdp2-x11 xvfb xdotool imagemagick scrot`
+  - **Mac**: `brew install freerdp imagemagick && brew install --cask xquartz` (then start XQuartz and set DISPLAY)
+    - Note: XQuartz provides xwd for screenshots, scrot not available on macOS
 - Test manual RDP connection: `xfreerdp /v:VM_IP /u:username`
 
 **Element not found:**
