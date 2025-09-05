@@ -1,57 +1,98 @@
 # VM Automation - Production Ready GUI Automation System
 
-🤖 **Two-Agent Architecture for Remote Windows VM GUI Automation** 
+🤖 **Multi-Architecture Computer Vision Automation Platform** 
 
-A production-ready AI system that automates GUI interactions in Windows VMs with computer vision, featuring patient safety verification for healthcare applications.
+A production-ready AI system that automates GUI interactions across VMs and local desktops with advanced computer vision, featuring unified OCR architecture, MCP server integration, and healthcare-grade patient safety verification.
+
+**Version**: 2.0.0  
+**Architecture**: OCR System  
+**AI Integration**: OpenAI, Claude, and Custom LLM Support  
+**Protocols**: VNC, RDP, Local Desktop (macOS/AppleScript)  
 
 ## 🎯 System Overview
 
-**Two specialized AI agents working together:**
+**Multi-Agent Architecture with Flexible Backends:**
 
-- **Agent 1 (VM Navigator)**: Connects to VMs, launches applications, verifies patient safety
-- **Agent 2 (App Controller)**: Performs precise GUI interactions using shared computer vision components
+- **VM Navigator Agent**: Connects to remote VMs (VNC/RDP), launches applications, verifies patient safety
+- **App Controller Agent**: Performs precise GUI interactions using shared computer vision components  
+- **Local Desktop Agent**: Native macOS automation using AppleScript for local screen control
+- **MCP Server**: Model Context Protocol server exposing vision tools to LLMs
+- **Unified OCR System**: Pure function-based computer vision core serving all agents
 
 **Key Technologies:**
 
-- **YOLOv8s-ONNX**: Real-time UI element detection 
-- **PaddleOCR**: Text recognition and verification
-- **VNC/RDP Protocol**: Flexible VM connection options
-- **Patient Safety**: Healthcare-grade identity verification
+- **YOLOv8s-ONNX**: Real-time UI element detection with CPU-optimized inference
+- **PaddleOCR**: Professional multilingual text recognition and extraction  
+- **Unified OCR Architecture**: Pure function-based computer vision with spatial reasoning
+- **Action Verification**: Screenshot-based verification with confidence scoring
+- **MCP Protocol**: Model Context Protocol for LLM tool integration
+- **Multi-Backend Support**: VNC, RDP, and native macOS automation
+- **Healthcare Safety**: HIPAA-compliant patient identity verification
+- **Production Features**: Error handling, audit logging, session management
 
 ## 🚀 Quick Start
 
 ### 1. Setup
 
 ```bash
-# Install dependencies
+# Clone repository
+git clone https://github.com/your-org/computer-use-agent.git
+cd computer-use-agent
+
+# Install dependencies (requires Python 3.10+)
 uv sync
 
-# Download AI models
-uv run src/setup_models.py
+# Download and setup AI models (YOLO + PaddleOCR)
+uv run src/ocr/setup_models.py
+
+# Verify installation
+uv run python -c "from ocr import detect_ui_elements; print('✅ Installation complete')"
 ```
+
+**System Requirements:**
+- Python 3.10 or later
+- 4GB RAM minimum (8GB recommended for optimal performance)
+- macOS: For local automation features
+- Linux/Windows: For VM connections only
 
 ### 2. Basic Usage
 
-**Simple VM automation:**
+**Quick Test (Local Desktop):**
 
 ```bash
-# Run with basic configuration
-uv run src/main.py
+# Test local desktop automation (macOS only)
+uv run python -c "
+from automation.form_interface import FormFiller
+from agent.vision_tools import analyze_screen
+print('Testing local automation...')
+analysis = analyze_screen('What applications are visible?')
+print('✅ Local automation ready')
+"
 ```
 
-**Production usage with configuration:**
+**VM Automation:**
 
 ```bash
-# Create sample configuration
+# Quick start with environment variables
+export VM_HOST="192.168.1.100"
+export VM_PASSWORD="your_password"  
+export CONNECTION_TYPE="vnc"
+uv run src/vm/main.py
+
+# Or use configuration file
 uv run vm-automation --create-samples
-
-# Edit vm_config.json with your VM details
-# Then run:
+# Edit vm_config.json, then:
 uv run vm-automation
+```
 
-# Or specify connection type:
-uv run vm-automation --connection rdp
-uv run vm-automation --connection vnc
+**MCP Server (for LLM Integration):**
+
+```bash
+# Start MCP server for Claude/OpenAI integration
+uv run python -c "
+from agent.mcp import start_server
+start_server(port=8000)
+"
 ```
 
 ### 3. Configuration Options
@@ -67,7 +108,13 @@ uv run vm-automation --connection vnc
   "vm_password": "vnc_password",
   "connection_type": "vnc",
   "target_app_name": "Greenway Dev",
-  "target_button_text": "Submit"
+  "target_button_text": "Submit",
+  "ocr_confidence_threshold": 0.6,
+  "yolo_confidence_threshold": 0.5,
+  "screenshot_interval": 1.0,
+  "max_retries": 3,
+  "enable_audit_logging": true,
+  "log_level": "INFO"
 }
 ```
 
@@ -83,8 +130,14 @@ uv run vm-automation --connection vnc
   "rdp_domain": "COMPANY",
   "rdp_width": 1920,
   "rdp_height": 1080,
+  "rdp_color_depth": 24,
   "target_app_name": "Greenway Dev",
-  "target_button_text": "Submit"
+  "target_button_text": "Submit",
+  "ocr_confidence_threshold": 0.7,
+  "yolo_confidence_threshold": 0.6,
+  "screenshot_interval": 0.8,
+  "enable_gpu_acceleration": false,
+  "timeout_seconds": 30
 }
 ```
 
@@ -112,6 +165,391 @@ export RDP_HEIGHT="1080"
 export TARGET_APP="Greenway Dev"
 export TARGET_BUTTON="Submit"
 vm-automation
+```
+
+## 🤖 AI Agent Computer Vision Tools
+
+The system includes professional computer vision tools designed for AI agent automation. Any AI agent can use these tools with simple prompts - no complex setup required.
+
+### 🔧 Core Vision Components
+
+**YOLOv8s-ONNX Detector:**
+- Real-time UI element detection
+- UI-focused class filtering (removes irrelevant objects like animals, food)
+- Optimized for screen/desktop environments
+- CPU-optimized ONNX inference
+
+**PaddleOCR Integration:**  
+- Professional text recognition and extraction
+- Multi-language support
+- Region-aware text detection
+- High-confidence text filtering
+
+**Unified OCR System:**
+- Pure function-based design with YOLO + OCR integration
+- Intelligent element detection and text extraction
+- Spatial reasoning for UI element relationships
+- Unified element representation with confidence scoring
+
+**Integrated Verification:**
+- Function-based action verification
+- Screenshot-based change detection
+- Text input verification
+- Element presence confirmation
+
+### 🎯 AI Agent Function Tools
+
+**Simple Function Interface:**
+
+```python
+from agent.vision_tools import *
+
+# Analyze current screen
+analysis = analyze_screen("What buttons and forms are visible?")
+
+# Find specific elements  
+button = find_element("Submit button")
+field = find_element("Username input field")
+
+# Perform actions
+click_element(button)
+type_text_in_field("john.doe", field)
+
+# Verify outcomes
+verify_action("Form should be submitted successfully")
+```
+
+**Available Functions:**
+- `analyze_screen(prompt)` - Analyze screen contents with natural language
+- `find_element(description)` - Find UI elements by description  
+- `click_element(element)` - Click on elements or coordinates
+- `type_text_in_field(text, field)` - Type text in input fields
+- `verify_action(expected)` - Verify action outcomes
+- `wait_for_element(description)` - Wait for elements to appear
+- `scroll_screen(direction, pixels)` - Scroll screen content
+- `take_screenshot(path)` - Capture screen images
+
+### 🔌 AI Framework Integration
+
+**OpenAI Functions:**
+
+```python
+from openai import OpenAI
+from agent.function_definitions import get_vision_function_tools
+from agent.vision_tools import *
+
+client = OpenAI()
+tools = get_vision_function_tools()
+
+response = client.chat.completions.create(
+    model="gpt-4",
+    messages=[{"role": "user", "content": "Click the Submit button"}],
+    tools=tools,
+    tool_choice="auto"
+)
+```
+
+**Claude Tools:**
+
+```python
+import anthropic
+from agent.function_definitions import get_vision_function_tools
+
+client = anthropic.Anthropic()
+tools = get_vision_function_tools()
+
+response = client.messages.create(
+    model="claude-3-opus-20240229",
+    tools=tools,
+    messages=[{"role": "user", "content": "Fill out this form"}]
+)
+```
+
+**Other Frameworks:**
+- Compatible with any AI framework that supports function calling
+- JSON schema definitions provided for easy integration
+- Standardized prompt-to-action interface
+
+### 🎬 Usage Examples
+
+**Healthcare Workflow Automation:**
+```python
+# Healthcare EMR automation with patient safety
+from agent.vision_tools import *
+from vm.automation.vm_navigator import VMNavigatorTools
+
+# Initialize with patient safety verification
+navigator = VMNavigatorTools(session, vm_target)
+
+# Verify patient banner before proceeding
+patient_info = {
+    "name": "John Doe",
+    "mrn": "123456",
+    "dob": "01/01/1980"
+}
+safety_check = navigator.verify_patient_banner(patient_info)
+if not safety_check["success"]:
+    raise Exception("Patient safety verification failed")
+
+# Proceed with form automation
+username_field = find_element("username field")
+type_text_in_field("doctor@hospital.com", username_field)
+submit_btn = find_element("login button")
+click_element(submit_btn)
+verify_action("Successfully logged into EMR system")
+```
+
+**Multi-Backend Automation:**
+```python
+# Example using different backends for different tasks
+from automation.desktop_control import DesktopControl  # Local macOS
+from vm.connections.vnc_connection import VNCConnection  # Remote VM
+
+# Local screenshot analysis
+local_control = DesktopControl()
+local_screenshot = local_control.capture_screen()
+local_elements = detect_ui_elements(local_screenshot)
+
+# Remote VM interaction
+vm_connection = VNCConnection("192.168.1.100", 5900, "password")
+vm_screenshot = vm_connection.capture_screen()
+vm_elements = find_elements_by_text(vm_screenshot, "Submit")
+```
+
+**Form Automation:**
+```python
+# AI agent can automate forms with simple prompts
+analysis = analyze_screen("Analyze this login form")
+username_field = find_element("username field") 
+type_text_in_field("user@example.com", username_field)
+
+password_field = find_element("password field")
+type_text_in_field("secure_pass", password_field)
+
+submit_btn = find_element("login button")
+click_element(submit_btn)
+
+verify_action("Login should be successful")
+```
+
+**Web Navigation:**
+```python
+# Navigate websites with computer vision
+search_box = find_element("search box")
+type_text_in_field("computer vision AI", search_box)
+
+search_btn = find_element("search button")
+click_element(search_btn)
+
+results = wait_for_element("search results", max_attempts=10)
+verify_action("Search results should be displayed")
+```
+
+**Settings Management:**
+```python
+# Navigate application settings
+settings = find_element("settings menu")
+click_element(settings)
+
+privacy_tab = find_element("privacy tab")
+click_element(privacy_tab)
+
+toggle = find_element("data collection toggle")
+click_element(toggle)
+
+verify_action("Privacy settings should be updated")
+```
+
+### ⚙️ Advanced Configuration Options
+
+**Vision System Configuration:**
+```python
+from agent.vision_tools import configure_vision_tools
+
+# Healthcare/Financial (High Precision)
+configure_vision_tools(
+    confidence_threshold=0.8,
+    ocr_language="en",
+    enable_gpu=False,  # CPU-only for consistency
+    max_screenshot_size=(1920, 1080),
+    element_timeout=10.0
+)
+
+# General Automation (Balanced)
+configure_vision_tools(
+    confidence_threshold=0.6,
+    ocr_language="en", 
+    enable_preprocessing=True,
+    screenshot_quality=85
+)
+
+# Development/Testing (Fast)
+configure_vision_tools(
+    confidence_threshold=0.4,
+    ocr_language="en",
+    enable_caching=True,
+    debug_mode=True
+)
+```
+
+**MCP Server Configuration:**
+```python
+from agent.mcp import create_mcp_server
+
+# Production MCP server
+server = create_mcp_server(
+    host="0.0.0.0",
+    port=8000,
+    max_concurrent_requests=10,
+    enable_cors=True,
+    log_level="INFO"
+)
+
+# Development MCP server
+server = create_mcp_server(
+    host="localhost", 
+    port=8001,
+    debug=True,
+    enable_detailed_logging=True
+)
+```
+
+**VM Connection Tuning:**
+```python
+from vm.connections.vnc_connection import VNCConnection
+
+# High-performance VNC
+vnc = VNCConnection(
+    host="192.168.1.100",
+    port=5900,
+    password="password",
+    pixel_format="bgr233",  # Faster but lower quality
+    enable_compression=True,
+    compression_level=6
+)
+
+# High-quality VNC
+vnc = VNCConnection(
+    host="192.168.1.100", 
+    port=5900,
+    password="password",
+    pixel_format="truecolor",
+    enable_compression=False,
+    capture_rate=30  # FPS
+)
+```
+
+### 📁 Complete System Architecture
+
+```
+src/
+├── ocr/                    # Unified Computer Vision System
+│   ├── detector.py         # YOLOv8s-ONNX UI element detection
+│   ├── reader.py           # PaddleOCR text extraction
+│   ├── finder.py           # Pure function UI element search and analysis
+│   ├── verification.py     # Pure function action verification
+│   ├── setup_models.py     # Model download and management
+│   └── models/             # Pre-trained models
+│       ├── yolov8s.onnx   # YOLO ONNX model for inference
+│       └── yolov8s.pt     # YOLO PyTorch model
+├── agent/                  # AI Agent Interface
+│   ├── vision_tools.py     # Function interface for AI agents
+│   ├── function_definitions.py # JSON schemas for AI frameworks
+│   ├── examples.py         # Usage examples and demos
+│   └── mcp/                # Model Context Protocol Server
+│       ├── __init__.py     # MCP server interface exports
+│       ├── handlers.py     # MCP tool handlers
+│       ├── mcp_server.py   # Model Context Protocol server
+│       └── tools.py        # Tool definitions for LLMs
+├── vm/                     # VM Connection and Automation
+│   ├── connections/        # VNC/RDP/Desktop connection backends
+│   ├── tools/              # Screen capture and input actions
+│   └── automation/         # VM navigator and app controller agents
+├── automation/             # Local Desktop Automation
+│   ├── desktop_control.py  # Native macOS automation (AppleScript)
+│   └── form_interface.py   # High-level form filling interface
+```
+
+**🏗️ Multi-Layered Architecture:**
+
+```
+┌─────────────────────────────────────────────┐
+│         AI Agent Functions                  │ ← Prompt-based interface
+├─────────────────────────────────────────────┤
+│         MCP Server Interface               │ ← Model Context Protocol tools
+├─────────────────────────────────────────────┤
+│         Unified OCR Functions              │ ← Pure function computer vision
+├─────────────────────────────────────────────┤
+│         VM Connection Backends             │ ← VNC/RDP/Desktop abstraction
+├─────────────────────────────────────────────┤
+│         Vision Models (YOLO + PaddleOCR)   │ ← Computer vision core
+└─────────────────────────────────────────────┘
+```
+
+**🎯 Agent Complexity Levels:**
+
+- **SIMPLE**: `analyze_screen()`, `find_element()`, `click_element()` 
+- **STRUCTURED**: `execute_structured_workflow()`, `create_form_filling_workflow()`
+- **ADVANCED**: `AgentSession`, spatial reasoning, custom runtime patterns
+- **EXPERT**: Full infrastructure access with `StepRunner`, protocol adapters
+
+### 🧪 Testing Multi-Agent Infrastructure
+
+**Basic Vision Tools:**
+```bash
+# Test basic agent functions
+uv run python -c "from agent import analyze_screen, find_element; print('✅ Basic tools ready')"
+
+# Test advanced workflow capabilities
+uv run python -c "from agent import execute_structured_workflow, create_form_filling_workflow; print('✅ Advanced tools ready')"
+
+# Test multi-agent service
+uv run python -c "from agent.service_architecture import get_service_status; print('✅ Service ready')"
+```
+
+**Infrastructure Testing:**
+```bash
+# Test unified OCR functions
+uv run python -c "from ocr import detect_ui_elements, extract_text, find_elements_by_text; print('✅ Unified OCR functions')"
+
+# Test verification functions
+uv run python -c "from ocr import verify_click_success, verify_element_present; print('✅ Verification functions')"
+
+# Test MCP server interface
+uv run python -c "from agent.mcp import create_mcp_server, get_function_tools; print('✅ MCP server interface')"
+
+# Run comprehensive examples
+uv run python src/agent/examples.py
+
+# Setup models if not downloaded
+uv run python src/ocr/setup_models.py
+```
+
+**Multi-Agent Service Demo:**
+```python
+from agent.service_architecture import (
+    OCRService, ConnectionBackend, get_service_status
+)
+
+# Create service
+service = OCRService()
+
+# Create desktop agent session
+session_id = service.create_session(
+    ConnectionBackend.DESKTOP, 
+    {"models_dir": "src/ocr/models"}
+)
+
+# Execute actions in session
+result = service.execute_in_session(
+    session_id,
+    "analyze_screen", 
+    {"prompt": "What's on the screen?"}
+)
+
+# Get service status
+status = get_service_status()
+print(f"Active sessions: {status['active_sessions']}")
 ```
 
 ## 🔗 Connection Types
@@ -154,23 +592,37 @@ The same computer vision and UI automation logic works seamlessly with both conn
 ```
 ├── src/
 │   ├── main.py              # Main orchestrator (consolidated entry point)
-│   ├── setup_models.py      # Download YOLO & PaddleOCR models
-│   ├── agents/              # AI agent implementations
-│   │   ├── vm_navigator.py  # Agent 1: VM connection & navigation
-│   │   ├── app_controller.py # Agent 2: GUI interactions
-│   │   └── shared_context.py # Shared data structures
-│   ├── connections/         # Connection abstraction layer
-│   │   ├── base.py          # Abstract base classes
-│   │   ├── vnc_connection.py # VNC implementation
-│   │   └── rdp_connection.py # RDP implementation
-│   ├── tools/               # Low-level automation tools
-│   │   ├── screen_capture.py # Connection-agnostic screen capture
-│   │   ├── input_actions.py  # Connection-agnostic input actions
-│   │   └── verification.py   # Action verification
-│   └── vision/              # Computer vision components
-│       ├── ui_finder.py     # YOLO-based UI detection
-│       ├── ocr_reader.py    # PaddleOCR wrapper
-│       └── yolo_detector.py # YOLO model interface
+│   ├── ocr/                 # Unified Computer Vision System
+│   │   ├── detector.py      # YOLOv8s-ONNX UI element detection
+│   │   ├── reader.py        # PaddleOCR text extraction
+│   │   ├── finder.py        # Pure function UI element search
+│   │   ├── verification.py  # Pure function action verification
+│   │   ├── setup_models.py  # Model download and management
+│   │   └── models/          # Pre-trained models
+│   │       ├── yolov8s.onnx # YOLO ONNX model
+│   │       └── yolov8s.pt   # YOLO PyTorch model
+│   ├── agent/               # AI Agent Interface
+│   │   ├── vision_tools.py  # Function interface for AI agents
+│   │   ├── function_definitions.py # JSON schemas for AI frameworks
+│   │   ├── examples.py      # Usage examples and demos
+│   │   └── mcp/             # Model Context Protocol Server
+│   │       ├── __init__.py  # MCP server interface exports
+│   │       ├── handlers.py  # MCP tool handlers
+│   │       ├── mcp_server.py # Model Context Protocol server
+│   │       └── tools.py     # Tool definitions for LLMs
+│   ├── vm/                  # VM connection management
+│   │   ├── connections/     # Connection implementations
+│   │   │   ├── base.py      # Abstract base classes
+│   │   │   ├── vnc_connection.py # VNC implementation
+│   │   │   ├── rdp_connection.py # RDP implementation
+│   │   │   └── desktop_connection.py # Local desktop connection
+│   │   ├── tools/           # Screen capture and input actions
+│   │   └── automation/      # VM-specific agent implementations
+│   │       ├── vm_navigator.py # Agent 1: VM connection & navigation
+│   │       └── app_controller.py # Agent 2: GUI interactions
+├── automation/              # Local Desktop Automation
+│   ├── desktop_control.py   # Native macOS automation (AppleScript)
+│   └── form_interface.py    # High-level form filling interface
 ├── tests/                   # Test suite
 │   ├── mock_components.py   # Mock implementations for testing
 │   ├── test_integration.py  # Integration tests
@@ -441,7 +893,7 @@ This testing approach ensures system reliability while providing flexibility for
 
 ```bash
 # Re-download AI models
-uv run src/setup_models.py
+uv run src/ocr/setup_models.py
 ```
 
 ## 🐳 Docker Support
@@ -523,11 +975,236 @@ docker run --rm -it \
 | Command | Purpose | Use Case |
 |---------|---------|----------|
 | `uv run src/main.py` | Direct script execution | Development & testing |
+| `uv run src/vm/main.py` | VM-specific entry point | VM automation only |
+| `uv run src/ocr/setup_models.py` | Download AI models | Initial setup |
 | `uv run vm-automation` | Production CLI | Production deployment |
 | `uv run vm-automation --connection rdp` | Use RDP connection | Windows VMs with RDP |
 | `uv run vm-automation --connection vnc` | Use VNC connection | Any VM with VNC server |
 | `uv run vm-automation --create-samples` | Generate config files | First-time setup |
 | `uv run vm-automation --validate-env` | Environment check | Troubleshooting |
+| `uv run vm-automation --health-check` | System health check | Monitoring |
+| `uv run vm-automation --benchmark` | Performance benchmark | Optimization |
+
+## 🔧 Production Deployment
+
+### Environment Configuration
+
+**Production Environment Variables:**
+```bash
+# Core Configuration
+export COMPUTER_USE_AGENT_ENV="production"
+export LOG_LEVEL="INFO" 
+export MAX_CONCURRENT_SESSIONS=5
+export SESSION_TIMEOUT=3600
+
+# Security
+export ENABLE_AUDIT_LOGGING="true"
+export AUDIT_LOG_PATH="/var/log/computer-use-agent/audit.log"
+export ENCRYPT_SCREENSHOTS="true"
+
+# Performance 
+export OCR_CONFIDENCE_THRESHOLD="0.7"
+export YOLO_CONFIDENCE_THRESHOLD="0.6"
+export SCREENSHOT_CACHE_SIZE=100
+export ENABLE_GPU_ACCELERATION="false"  # CPU-only for consistency
+
+# Healthcare/HIPAA
+export HIPAA_COMPLIANCE_MODE="true"
+export PHI_LOGGING_ENABLED="false"
+export PATIENT_VERIFICATION_REQUIRED="true"
+```
+
+### Docker Production Setup
+
+**Multi-stage Production Dockerfile:**
+```dockerfile
+FROM python:3.11-slim as production
+
+# System dependencies
+RUN apt-get update && apt-get install -y \
+    libgl1-mesa-glx \
+    libglib2.0-0 \
+    libsm6 \
+    libxext6 \
+    libxrender-dev \
+    libgomp1 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install UV package manager
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/uv
+
+# Copy application
+WORKDIR /app
+COPY . .
+
+# Install dependencies and download models
+RUN uv sync --frozen
+RUN uv run src/ocr/setup_models.py
+
+# Create non-root user
+RUN useradd -m -u 1000 agent
+RUN chown -R agent:agent /app
+USER agent
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD uv run vm-automation --health-check
+
+EXPOSE 8000
+CMD ["uv", "run", "vm-automation", "--production"]
+```
+
+### Monitoring and Observability
+
+**Health Check Endpoint:**
+```python
+from agent.mcp import create_mcp_server
+
+# Add health monitoring
+server = create_mcp_server(
+    enable_metrics=True,
+    metrics_port=9090,
+    health_check_endpoint="/health"
+)
+
+# Custom health checks
+def custom_health_check():
+    """Custom health validation"""
+    try:
+        # Test OCR functionality
+        from ocr import detect_ui_elements
+        import numpy as np
+        test_image = np.zeros((100, 100, 3), dtype=np.uint8)
+        detect_ui_elements(test_image)
+        
+        # Test model availability
+        from ocr.setup_models import verify_models
+        models_status = verify_models()
+        
+        return {
+            "status": "healthy",
+            "ocr_functional": True,
+            "models_loaded": all(models_status.values()),
+            "timestamp": time.time()
+        }
+    except Exception as e:
+        return {
+            "status": "unhealthy", 
+            "error": str(e),
+            "timestamp": time.time()
+        }
+```
+
+**Logging Configuration:**
+```python
+import logging
+from logging.handlers import RotatingFileHandler
+
+# Production logging setup
+def setup_production_logging():
+    """Configure production-grade logging"""
+    
+    # Main application logger
+    logger = logging.getLogger("computer_use_agent")
+    logger.setLevel(logging.INFO)
+    
+    # Rotating file handler (100MB max, keep 5 files)
+    file_handler = RotatingFileHandler(
+        "logs/app.log", 
+        maxBytes=100*1024*1024, 
+        backupCount=5
+    )
+    file_handler.setFormatter(logging.Formatter(
+        '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    ))
+    logger.addHandler(file_handler)
+    
+    # Audit logger (for compliance)
+    audit_logger = logging.getLogger("audit")
+    audit_handler = RotatingFileHandler(
+        "logs/audit.log",
+        maxBytes=50*1024*1024,
+        backupCount=10
+    )
+    audit_handler.setFormatter(logging.Formatter(
+        '%(asctime)s - AUDIT - %(message)s'
+    ))
+    audit_logger.addHandler(audit_handler)
+    
+    return logger, audit_logger
+```
+
+## 📊 Performance Optimization
+
+### Benchmarking
+
+```bash
+# Run performance benchmark
+uv run vm-automation --benchmark
+
+# OCR-specific benchmarking
+uv run python -c "
+from ocr.setup_models import verify_models
+from ocr import detect_ui_elements, extract_text
+import time
+import numpy as np
+
+# Generate test image
+test_image = np.random.randint(0, 255, (1080, 1920, 3), dtype=np.uint8)
+
+# Benchmark detection
+start_time = time.time()
+elements = detect_ui_elements(test_image)
+detection_time = time.time() - start_time
+
+# Benchmark OCR
+start_time = time.time()
+text_results = extract_text(test_image)
+ocr_time = time.time() - start_time
+
+print(f'YOLO Detection: {detection_time:.2f}s')
+print(f'OCR Processing: {ocr_time:.2f}s')
+print(f'Total Elements Found: {len(elements)}')
+print(f'Text Regions Found: {len(text_results)}')
+"
+```
+
+### Resource Usage Monitoring
+
+```python
+import psutil
+import time
+from dataclasses import dataclass
+
+@dataclass
+class PerformanceMetrics:
+    cpu_percent: float
+    memory_mb: float
+    screenshot_fps: float
+    ocr_latency_ms: float
+    detection_latency_ms: float
+
+def monitor_performance():
+    """Monitor system performance"""
+    process = psutil.Process()
+    
+    # CPU and Memory
+    cpu_percent = process.cpu_percent(interval=1)
+    memory_mb = process.memory_info().rss / 1024 / 1024
+    
+    # Vision performance (simplified)
+    start_time = time.time()
+    # ... perform OCR operations ...
+    ocr_latency = (time.time() - start_time) * 1000
+    
+    return PerformanceMetrics(
+        cpu_percent=cpu_percent,
+        memory_mb=memory_mb,
+        screenshot_fps=30.0,  # Example
+        ocr_latency_ms=ocr_latency,
+        detection_latency_ms=150.0  # Example
+    )
+```
 
 ---
 
@@ -539,4 +1216,3 @@ This system is ready for real-world deployment with:
 - **Two-Agent Architecture**: Efficient component sharing
 - **Healthcare Safety**: Optional patient verification
 - **Production Features**: Configuration management, error handling, audit logging
-- **Clean Architecture**: No mock code in production paths

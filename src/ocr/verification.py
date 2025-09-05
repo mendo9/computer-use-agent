@@ -1,0 +1,319 @@
+"""Action verification using clean OCR functions
+
+This module provides verification tools that work with the clean OCR functions
+instead of the old object-oriented UIFinder approach.
+"""
+
+import time
+from dataclasses import dataclass
+from typing import Any
+
+import cv2
+import numpy as np
+
+from . import detect_ui_elements, extract_text_from_region, find_elements_by_text
+
+
+@dataclass
+class VerificationResult:
+    """Result of an action verification"""
+
+    success: bool
+    message: str
+    confidence: float
+    screenshot: np.ndarray | None = None
+    found_elements: list[Any] | None = None
+
+
+def verify_click_success(
+    before_screenshot: np.ndarray,
+    after_screenshot: np.ndarray,
+    expected_change: str = "any",
+) -> VerificationResult:
+    """
+    Verify that a click action was successful
+
+    Args:
+        before_screenshot: Screenshot before click
+        after_screenshot: Screenshot after click
+        expected_change: Type of change expected ("any", "dialog", "page_change", etc.)
+
+    Returns:
+        VerificationResult
+    """
+    # Calculate difference between screenshots
+    diff = cv2.absdiff(before_screenshot, after_screenshot)
+    change_percentage = np.mean(diff > 10) * 100  # Pixels that changed significantly
+
+    if change_percentage < 1.0:
+        return VerificationResult(
+            success=False,
+            message=f"No significant screen change detected ({change_percentage:.1f}%)",
+            confidence=0.1,
+            screenshot=after_screenshot,
+        )
+
+    # Look for specific changes based on expected_change
+    if expected_change == "dialog":
+        # Look for new dialog boxes or windows
+        elements_before = detect_ui_elements(before_screenshot, confidence_threshold=0.6)
+        elements_after = detect_ui_elements(after_screenshot, confidence_threshold=0.6)
+
+        new_elements = len(elements_after) - len(elements_before)
+        if new_elements > 0:
+            return VerificationResult(
+                success=True,
+                message=f"Dialog appeared - {new_elements} new UI elements detected",
+                confidence=0.8,
+                screenshot=after_screenshot,
+                found_elements=elements_after,
+            )
+
+    # General success based on screen change
+    confidence = min(change_percentage / 10.0, 1.0)  # Scale to 0-1
+
+    return VerificationResult(
+        success=True,
+        message=f"Screen changed ({change_percentage:.1f}% of pixels)",
+        confidence=confidence,
+        screenshot=after_screenshot,
+    )
+
+
+def verify_text_input(
+    screenshot: np.ndarray, input_region: tuple[int, int, int, int], expected_text: str
+) -> VerificationResult:
+    """
+    Verify that text was correctly entered in an input field
+
+    Args:
+        screenshot: Screenshot after text input
+        input_region: Region of the input field (x1, y1, x2, y2)
+        expected_text: Text that should be present
+
+    Returns:
+        VerificationResult
+    """
+    # Read text from the input region
+    detected_text = extract_text_from_region(screenshot, input_region, confidence_threshold=0.5)
+
+    if not detected_text:
+        return VerificationResult(
+            success=False,
+            message="No text detected in input field",
+            confidence=0.1,
+            screenshot=screenshot,
+        )
+
+    # Get the most confident text detection
+    best_detection = max(detected_text, key=lambda x: x.confidence)
+
+    # Simple text matching (could be improved with fuzzy matching)
+    detected_clean = best_detection.text.strip().lower()
+    expected_clean = expected_text.strip().lower()
+
+    if expected_clean in detected_clean or detected_clean in expected_clean:
+        confidence = 0.9 if detected_clean == expected_clean else 0.7
+        return VerificationResult(
+            success=True,
+            message=f"Text verified: '{best_detection.text}' matches expected '{expected_text}'",
+            confidence=confidence,
+            screenshot=screenshot,
+        )
+
+    return VerificationResult(
+        success=False,
+        message=f"Text mismatch: found '{best_detection.text}', expected '{expected_text}'",
+        confidence=0.2,
+        screenshot=screenshot,
+    )
+
+
+def verify_element_present(
+    screenshot: np.ndarray, element_description: str, confidence_threshold: float = 0.5
+) -> VerificationResult:
+    """
+    Verify that a specific UI element is present
+
+    Args:
+        screenshot: Current screenshot
+        element_description: Description of element to find
+        confidence_threshold: Minimum confidence threshold
+
+    Returns:
+        VerificationResult
+    """
+    # Try to find element by text
+    matching_elements = find_elements_by_text(
+        screenshot, element_description, confidence_threshold=confidence_threshold
+    )
+
+    if matching_elements:
+        return VerificationResult(
+            success=True,
+            message=f"Element found: {element_description}",
+            confidence=max(elem.confidence for elem in matching_elements),
+            screenshot=screenshot,
+            found_elements=matching_elements,
+        )
+
+    # Try to find any UI elements and check if they contain keywords
+    ui_elements = detect_ui_elements(screenshot, confidence_threshold=confidence_threshold)
+
+    # Simple keyword matching
+    keywords = element_description.lower().split()
+    for element in ui_elements:
+        if element.text and any(keyword in element.text.lower() for keyword in keywords):
+            return VerificationResult(
+                success=True,
+                message=f"Element found by keyword match: {element.text}",
+                confidence=element.confidence,
+                screenshot=screenshot,
+                found_elements=[element],
+            )
+
+    return VerificationResult(
+        success=False,
+        message=f"Element not found: {element_description}",
+        confidence=0.1,
+        screenshot=screenshot,
+    )
+
+
+def verify_page_loaded(
+    screenshot: np.ndarray, expected_indicators: list[str], confidence_threshold: float = 0.5
+) -> VerificationResult:
+    """
+    Verify that a page/application has loaded completely
+
+    Args:
+        screenshot: Current screenshot
+        expected_indicators: List of text/elements that should be present
+        confidence_threshold: Minimum confidence threshold
+
+    Returns:
+        VerificationResult
+    """
+    found_indicators = []
+    total_confidence = 0
+
+    for indicator in expected_indicators:
+        elements = find_elements_by_text(
+            screenshot, indicator, confidence_threshold=confidence_threshold
+        )
+        if elements:
+            found_indicators.append(indicator)
+            total_confidence += max(elem.confidence for elem in elements)
+
+    if not found_indicators:
+        return VerificationResult(
+            success=False,
+            message=f"Page load verification failed - none of {expected_indicators} found",
+            confidence=0.1,
+            screenshot=screenshot,
+        )
+
+    success_rate = len(found_indicators) / len(expected_indicators)
+    avg_confidence = total_confidence / len(found_indicators)
+
+    return VerificationResult(
+        success=success_rate >= 0.5,  # At least half the indicators should be present
+        message=f"Page loaded - found {len(found_indicators)}/{len(expected_indicators)} indicators: {found_indicators}",
+        confidence=avg_confidence * success_rate,
+        screenshot=screenshot,
+    )
+
+
+def wait_for_element(
+    capture_func,
+    element_description: str,
+    max_attempts: int = 10,
+    delay: float = 1.0,
+    confidence_threshold: float = 0.5,
+) -> VerificationResult:
+    """
+    Wait for a specific element to appear
+
+    Args:
+        capture_func: Function to capture current screenshot
+        element_description: Description of element to wait for
+        max_attempts: Maximum number of attempts
+        delay: Delay between attempts in seconds
+        confidence_threshold: Minimum confidence threshold
+
+    Returns:
+        VerificationResult
+    """
+    for attempt in range(max_attempts):
+        screenshot = capture_func()
+        if screenshot is None:
+            continue
+
+        result = verify_element_present(screenshot, element_description, confidence_threshold)
+        if result.success:
+            result.message += f" (found after {attempt + 1} attempts)"
+            return result
+
+        if attempt < max_attempts - 1:  # Don't sleep on last attempt
+            time.sleep(delay)
+
+    return VerificationResult(
+        success=False,
+        message=f"Element '{element_description}' not found after {max_attempts} attempts",
+        confidence=0.1,
+    )
+
+
+def compare_screenshots(screen1: np.ndarray, screen2: np.ndarray) -> dict[str, float]:
+    """
+    Compare two screenshots and return similarity metrics
+
+    Args:
+        screen1: First screenshot
+        screen2: Second screenshot
+
+    Returns:
+        Dictionary with similarity metrics
+    """
+    if screen1.shape != screen2.shape:
+        return {"similarity": 0.0, "mse": float("inf"), "change_percentage": 100.0}
+
+    # Mean Squared Error
+    mse = np.mean((screen1.astype(float) - screen2.astype(float)) ** 2)
+
+    # Change percentage
+    diff = cv2.absdiff(screen1, screen2)
+    change_percentage = np.mean(diff > 10) * 100
+
+    # Similarity score (inverse of normalized MSE)
+    max_possible_mse = 255**2
+    similarity = 1.0 - (mse / max_possible_mse)
+
+    return {"similarity": similarity, "mse": mse, "change_percentage": change_percentage}
+
+
+def create_diff_visualization(screen1: np.ndarray, screen2: np.ndarray) -> np.ndarray:
+    """
+    Create a visualization showing differences between two screenshots
+
+    Args:
+        screen1: First screenshot
+        screen2: Second screenshot
+
+    Returns:
+        Difference visualization image
+    """
+    if screen1.shape != screen2.shape:
+        return np.zeros_like(screen1)
+
+    # Create difference image
+    diff = cv2.absdiff(screen1, screen2)
+
+    # Threshold to highlight significant changes
+    thresh = cv2.threshold(cv2.cvtColor(diff, cv2.COLOR_BGR2GRAY), 10, 255, cv2.THRESH_BINARY)[1]
+
+    # Create colored difference visualization
+    diff_colored = diff.copy()
+    diff_colored[thresh > 0] = [0, 0, 255]  # Highlight changes in red
+
+    return diff_colored

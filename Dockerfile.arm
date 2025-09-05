@@ -1,0 +1,78 @@
+# ARM64/Apple Silicon compatible Dockerfile
+FROM --platform=linux/arm64 python:3.12-slim AS base
+
+# For ARM compatibility, use explicit platform
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PYTHONOPTIMIZE=2
+
+# Update packages and install core dependencies 
+RUN apt-get update -qq && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    wget \
+    curl \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Python computer vision dependencies
+RUN apt-get update -qq && apt-get install -y --no-install-recommends \
+    libglib2.0-0 \
+    libsm6 \
+    libxext6 \
+    libxrender-dev \
+    libgomp1 \
+    libgthread-2.0-0 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install X11 and basic tools (minimal set for ARM compatibility)
+RUN apt-get update -qq && apt-get install -y --no-install-recommends \
+    xvfb \
+    x11-utils \
+    scrot \
+    imagemagick \
+    && rm -rf /var/lib/apt/lists/*
+
+# Try to install xdotool (may not be available on all ARM repos)
+RUN apt-get update -qq && apt-get install -y --no-install-recommends \
+    xdotool || echo "xdotool not available on this ARM platform"
+
+# Try to install FreeRDP (may have different package name on ARM)
+RUN apt-get update -qq && apt-get install -y --no-install-recommends \
+    freerdp2-x11 || \
+    apt-get install -y --no-install-recommends freerdp-x11 || \
+    echo "FreeRDP not available, OCR testing will still work"
+
+RUN rm -rf /var/lib/apt/lists/*
+
+# ---------- Builder stage ----------  
+FROM base AS builder
+COPY --from=ghcr.io/astral-sh/uv:0.8.13 /uv /usr/local/bin/uv
+WORKDIR /app
+
+COPY pyproject.toml /app/
+RUN --mount=type=cache,target=/root/.cache/uv uv lock
+RUN --mount=type=cache,target=/root/.cache/uv uv sync --frozen --no-install-project --no-dev
+
+COPY . /app
+RUN --mount=type=cache,target=/root/.cache/uv uv sync --frozen --no-dev
+
+# Install debugpy for remote debugging
+RUN --mount=type=cache,target=/root/.cache/uv uv add debugpy
+
+# ---------- Runtime stage ----------
+FROM base AS runtime
+WORKDIR /app
+
+# Copy uv binary from builder stage
+COPY --from=builder /usr/local/bin/uv /usr/local/bin/uv
+
+RUN useradd -m -u 10001 appuser
+COPY --from=builder /app /app
+ENV PATH="/app/.venv/bin:${PATH}"
+
+ENV DISPLAY=:99
+RUN mkdir -p /tmp/screenshots && chown appuser:appuser /tmp/screenshots
+
+USER appuser
+CMD ["bash"]

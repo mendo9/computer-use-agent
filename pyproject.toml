@@ -17,26 +17,25 @@ classifiers = [
 
 # Runtime deps
 dependencies = [
-  "openai>=1.52.0",
-  "openai-agents>=0.2.9", # Agents SDK
-  # VM Automation POC dependencies
-  "ultralytics>=8.0.0",
-  "onnxruntime>=1.16.0",
-  "paddlepaddle>=2.5.0",
-  "paddleocr>=2.7.0",
-  "opencv-python>=4.8.0",
-  "vncdotool>=1.2.0",
-  "fastapi>=0.104.0",
-  "uvicorn>=0.24.0",
-  "pillow>=10.0.0",
-  "numpy>=1.24.0",
+  "fastapi>=0.116.1",
+  "numpy>=2.3.2",
   "onnx>=1.19.0",
+  "onnxruntime>=1.22.1",
+  "openai>=1.105.0",
+  "openai-agents>=0.2.11",
+  "opencv-python>=4.11.0.86",
+  "paddleocr[all]>=3.2.0",
+  "paddlepaddle>=3.1.1",
+  "pillow>=11.3.0",
+  "ultralytics>=8.3.193",
+  "uvicorn>=0.35.0",
+  "vncdotool>=1.2.0",
 ]
 
 # Dev / tooling
 
 [project.scripts]
-vm-automation = "src.main:cli_main"
+vm-automation = "vm.main:cli_main"
 
 [tool.ruff]
 line-length = 100
@@ -57,7 +56,6 @@ testpaths = ["tests"]
 markers = [
   "integration: marks tests as integration tests (require VM connection)",
   "mock: marks tests as using mock components (no VM required)",
-  "slow: marks tests as slow running",
   "vnc: marks tests as VNC-specific integration tests",
   "rdp: marks tests as RDP-specific integration tests",
   "patient_workflow: marks tests as patient workflow tests (healthcare applications)",
@@ -66,21 +64,19 @@ markers = [
 ]
 
 [tool.hatch.build.targets.wheel]
-packages = ["src"]
-include = ["src/**"]
+packages = ["src/automation", "src/agent", "src/ocr", "src/vm"]
 
 [tool.uv]
 default-groups = ["dev"]
 
 [dependency-groups]
 dev = [
-  "pytest>=8.3.0",
-  "pytest-cov>=5.0.0",
-  "pytest-asyncio>=0.23.0",
-  "ruff>=0.5.7",
-  "pyright>=1.1.379",
-  "pre-commit>=3.7.1",
-  # POC evaluation dependencies
-  "deepeval>=0.21.0",
-  "arize-phoenix>=4.0.0",
+    "arize-phoenix>=11.32.1",
+    "deepeval>=3.4.7",
+    "pre-commit>=4.3.0",
+    "pyright>=1.1.405",
+    "pytest>=8.4.2",
+    "pytest-asyncio>=1.1.0",
+    "pytest-cov>=6.2.1",
+    "ruff>=0.12.12",
 ]
