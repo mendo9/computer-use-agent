@@ -25,10 +25,28 @@ class YOLODetector:
         class_names: list[str] | None = None,
         input_size: int = 640,
     ):
-        self.onnx_path = onnx_path or os.getenv("YOLO_ONNX_PATH", "")
-        self.class_names = class_names or []
+        # Default to the models directory or env variable
+        default_path = os.path.join(os.path.dirname(__file__), "..", "..", "models", "yolov8s.onnx")
+        self.onnx_path = onnx_path or os.getenv("YOLO_ONNX_PATH", default_path)
+        
+        # COCO class names for YOLOv8
+        default_classes = [
+            "person", "bicycle", "car", "motorcycle", "airplane", "bus", "train", "truck", "boat",
+            "traffic light", "fire hydrant", "stop sign", "parking meter", "bench", "bird", "cat",
+            "dog", "horse", "sheep", "cow", "elephant", "bear", "zebra", "giraffe", "backpack",
+            "umbrella", "handbag", "tie", "suitcase", "frisbee", "skis", "snowboard", "sports ball",
+            "kite", "baseball bat", "baseball glove", "skateboard", "surfboard", "tennis racket",
+            "bottle", "wine glass", "cup", "fork", "knife", "spoon", "bowl", "banana", "apple",
+            "sandwich", "orange", "broccoli", "carrot", "hot dog", "pizza", "donut", "cake", "chair",
+            "couch", "potted plant", "bed", "dining table", "toilet", "tv", "laptop", "mouse",
+            "remote", "keyboard", "cell phone", "microwave", "oven", "toaster", "sink",
+            "refrigerator", "book", "clock", "vase", "scissors", "teddy bear", "hair drier",
+            "toothbrush"
+        ]
+        self.class_names = class_names or default_classes
         self.input_size = input_size
         self._session = None
+        self._load_error = None
         self._try_load()
 
     def _try_load(self) -> None:
