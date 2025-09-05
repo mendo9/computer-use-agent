@@ -1,8 +1,8 @@
 """VM Connection abstraction layer"""
 
-from src.vm.connections.base import ActionResult, ConnectionResult, VMConnection
-from src.vm.connections.rdp_connection import RDPConnection
-from src.vm.connections.vnc_connection import VNCConnection
+from vm.connections.base import ActionResult, ConnectionResult, VMConnection
+from vm.connections.rdp_connection import RDPConnection
+from vm.connections.vnc_connection import VNCConnection
 
 
 def create_connection(connection_type: str) -> VMConnection:

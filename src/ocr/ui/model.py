@@ -1,7 +1,8 @@
 from dataclasses import dataclass
 
+# Using superior unified vision implementations
 from ocr.vision.detector import Detection
-from ocr.vision.ocr import TextBox
+from ocr.vision.ocr import TextDetection
 
 
 @dataclass
@@ -14,19 +15,32 @@ class UIElement:
     source: str = "unknown"  # "ocr" | "yolo" | "merged"
 
 
-def merge_detections_and_text(dets: list[Detection], tbs: list[TextBox]) -> list[UIElement]:
-    """Naive fusion by proximity (center-to-center)."""
+def merge_detections_and_text(dets: list[Detection], text_detections: list[TextDetection]) -> list[UIElement]:
+    """Fusion by proximity (center-to-center) using superior data structures."""
     elems: list[UIElement] = []
+    
+    # Add YOLO detections
     for d in dets:
-        x1, y1, x2, y2 = d.bbox
-        cx, cy = (x1 + x2) // 2, (y1 + y2) // 2
         elems.append(
-            UIElement(bbox=d.bbox, center=(cx, cy), label=d.label, score=d.score, source="yolo")
+            UIElement(
+                bbox=d.bbox, 
+                center=d.center,  # VM Detection already has center
+                label=d.class_name,  # VM Detection uses class_name not label
+                score=d.confidence,  # VM Detection uses confidence not score
+                source="yolo"
+            )
         )
-    for t in tbs:
-        x1, y1, x2, y2 = t.bbox
-        cx, cy = (x1 + x2) // 2, (y1 + y2) // 2
+    
+    # Add text detections
+    for t in text_detections:
         elems.append(
-            UIElement(bbox=t.bbox, center=(cx, cy), text=t.text, score=t.score, source="ocr")
+            UIElement(
+                bbox=t.rect_bbox,  # TextDetection has rect_bbox for rectangular bounds
+                center=t.center,   # TextDetection already has center
+                text=t.text, 
+                score=t.confidence,  # TextDetection uses confidence not score
+                source="ocr"
+            )
         )
+    
     return elems

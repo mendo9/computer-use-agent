@@ -2,8 +2,8 @@
 
 import time
 
-from src.vm.connections import VMConnection
-from src.vm.connections.base import ActionResult
+from vm.connections import VMConnection
+from vm.connections.base import ActionResult
 
 
 class InputActions:

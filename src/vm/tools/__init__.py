@@ -1,8 +1,8 @@
 """Tools module for VM interaction"""
 
-from src.vm.tools.input_actions import ActionResult, InputActions
-from src.vm.tools.screen_capture import ScreenCapture
-from src.vm.tools.verification import ActionVerifier, VerificationResult
+from ocr.verification import ActionVerifier, VerificationResult
+from vm.tools.input_actions import ActionResult, InputActions
+from vm.tools.screen_capture import ScreenCapture
 
 __all__ = [
     "ActionResult",

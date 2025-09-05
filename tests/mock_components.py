@@ -7,10 +7,10 @@ from typing import Any
 import cv2
 import numpy as np
 
-from src.tools.input_actions import ActionResult, InputActions
-from src.tools.screen_capture import ScreenCapture
-from src.tools.verification import VerificationResult
-from src.vision.ui_finder import UIElement
+from ocr.verification.verification import VerificationResult
+from ocr.vision.finder import UIElement
+from vm.tools.input_actions import ActionResult, InputActions
+from vm.tools.screen_capture import ScreenCapture
 
 
 class MockScreenCapture(ScreenCapture):
@@ -132,7 +132,7 @@ class MockInputActions(InputActions):
 
     def __init__(self):
         # Create a mock connection for the parent class
-        from src.connections.base import ActionResult, VMConnection
+        from connections.base import ActionResult, VMConnection
 
         class MockConnection(VMConnection):
             def __init__(self):
@@ -140,12 +140,12 @@ class MockInputActions(InputActions):
                 self.is_connected = True
 
             def connect(self, host, port, username=None, password=None, **kwargs):
-                from src.connections.base import ConnectionResult
+                from connections.base import ConnectionResult
 
                 return ConnectionResult(True, "Mock connected")
 
             def disconnect(self):
-                from src.connections.base import ConnectionResult
+                from connections.base import ConnectionResult
 
                 return ConnectionResult(True, "Mock disconnected")
 

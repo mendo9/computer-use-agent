@@ -36,7 +36,7 @@ dependencies = [
 # Dev / tooling
 
 [project.scripts]
-vm-automation = "src.main:cli_main"
+vm-automation = "vm.main:cli_main"
 
 [tool.ruff]
 line-length = 100
@@ -66,8 +66,7 @@ markers = [
 ]
 
 [tool.hatch.build.targets.wheel]
-packages = ["src"]
-include = ["src/**"]
+packages = ["src/ocr", "src/vm", "src/demo"]
 
 [tool.uv]
 default-groups = ["dev"]

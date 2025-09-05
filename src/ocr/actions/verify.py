@@ -19,6 +19,6 @@ def page_changed(screen: Screen, before: Any, after: Any, min_delta_bits: int = 
 
 
 def expect_text(ocr: OCRReader, frame: Any, query: str) -> bool:
-    boxes = ocr.read(frame)
+    text_detections = ocr.read_text(frame)  # Use new method name
     q = query.lower()
-    return any(q in tb.text.lower() for tb in boxes)
+    return any(q in td.text.lower() for td in text_detections)

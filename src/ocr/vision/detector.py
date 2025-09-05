@@ -1,191 +1,286 @@
-from __future__ import annotations
+"""YOLOv8s-ONNX inference for UI element detection"""
 
-import os
 from dataclasses import dataclass
-from typing import Any
+from pathlib import Path
+
+import cv2
+import numpy as np
+import onnxruntime as ort
 
 
 @dataclass
 class Detection:
-    bbox: tuple[int, int, int, int]  # x1,y1,x2,y2
-    label: str
-    score: float
+    """UI element detection result"""
+
+    class_name: str
+    confidence: float
+    bbox: tuple[int, int, int, int]  # x1, y1, x2, y2
+    center: tuple[int, int]
+    id: str | None = None
 
 
 class YOLODetector:
-    """
-    ONNX YOLOv8-style detector.
-    - Expects an ONNX model with (1,3,H,W) input and standard YOLOv8 output.
-    - Uses letterbox resize to model size (default 640).
-    """
+    """YOLOv8s-ONNX detector for UI elements"""
 
-    def __init__(
-        self,
-        onnx_path: str | None = None,
-        class_names: list[str] | None = None,
-        input_size: int = 640,
-    ):
-        # Default to the models directory or env variable
-        default_path = os.path.join(os.path.dirname(__file__), "..", "..", "models", "yolov8s.onnx")
-        self.onnx_path = onnx_path or os.getenv("YOLO_ONNX_PATH", default_path)
-        
-        # COCO class names for YOLOv8
-        default_classes = [
-            "person", "bicycle", "car", "motorcycle", "airplane", "bus", "train", "truck", "boat",
-            "traffic light", "fire hydrant", "stop sign", "parking meter", "bench", "bird", "cat",
-            "dog", "horse", "sheep", "cow", "elephant", "bear", "zebra", "giraffe", "backpack",
-            "umbrella", "handbag", "tie", "suitcase", "frisbee", "skis", "snowboard", "sports ball",
-            "kite", "baseball bat", "baseball glove", "skateboard", "surfboard", "tennis racket",
-            "bottle", "wine glass", "cup", "fork", "knife", "spoon", "bowl", "banana", "apple",
-            "sandwich", "orange", "broccoli", "carrot", "hot dog", "pizza", "donut", "cake", "chair",
-            "couch", "potted plant", "bed", "dining table", "toilet", "tv", "laptop", "mouse",
-            "remote", "keyboard", "cell phone", "microwave", "oven", "toaster", "sink",
-            "refrigerator", "book", "clock", "vase", "scissors", "teddy bear", "hair drier",
-            "toothbrush"
-        ]
-        self.class_names = class_names or default_classes
-        self.input_size = input_size
-        self._session = None
-        self._load_error = None
-        self._try_load()
+    # COCO classes relevant for UI detection
+    UI_CLASSES = {
+        0: "person",
+        1: "bicycle",
+        2: "car",
+        3: "motorcycle",
+        4: "airplane",
+        5: "bus",
+        6: "train",
+        7: "truck",
+        8: "boat",
+        9: "traffic light",
+        10: "fire hydrant",
+        11: "stop sign",
+        12: "parking meter",
+        13: "bench",
+        14: "bird",
+        15: "cat",
+        16: "dog",
+        17: "horse",
+        18: "sheep",
+        19: "cow",
+        20: "elephant",
+        21: "bear",
+        22: "zebra",
+        23: "giraffe",
+        24: "backpack",
+        25: "umbrella",
+        26: "handbag",
+        27: "tie",
+        28: "suitcase",
+        29: "frisbee",
+        30: "skis",
+        31: "snowboard",
+        32: "sports ball",
+        33: "kite",
+        34: "baseball bat",
+        35: "baseball glove",
+        36: "skateboard",
+        37: "surfboard",
+        38: "tennis racket",
+        39: "bottle",
+        40: "wine glass",
+        41: "cup",
+        42: "fork",
+        43: "knife",
+        44: "spoon",
+        45: "bowl",
+        46: "banana",
+        47: "apple",
+        48: "sandwich",
+        49: "orange",
+        50: "broccoli",
+        51: "carrot",
+        52: "hot dog",
+        53: "pizza",
+        54: "donut",
+        55: "cake",
+        56: "chair",
+        57: "couch",
+        58: "potted plant",
+        59: "bed",
+        60: "dining table",
+        61: "toilet",
+        62: "tv",
+        63: "laptop",
+        64: "mouse",
+        65: "remote",
+        66: "keyboard",
+        67: "cell phone",
+        68: "microwave",
+        69: "oven",
+        70: "toaster",
+        71: "sink",
+        72: "refrigerator",
+        73: "book",
+        74: "clock",
+        75: "vase",
+        76: "scissors",
+        77: "teddy bear",
+        78: "hair drier",
+        79: "toothbrush",
+    }
 
-    def _try_load(self) -> None:
-        if not self.onnx_path or not os.path.exists(self.onnx_path):
-            return
-        try:
-            import onnxruntime as ort  # type: ignore
+    def __init__(self, model_path: str, confidence_threshold: float = 0.6):
+        """Initialize YOLOv8s-ONNX detector"""
+        self.model_path = Path(model_path)
+        self.confidence_threshold = confidence_threshold
 
-            providers = ["CUDAExecutionProvider", "CPUExecutionProvider"]
-            self._session = ort.InferenceSession(self.onnx_path, providers=providers)
-        except Exception as e:
-            # Defer failure to inference call, but keep message for debugging
-            self._load_error = str(e)
+        # Initialize ONNX Runtime session
+        self.session = ort.InferenceSession(str(self.model_path))
 
-    def _letterbox(self, img, new_size=640, color=(114, 114, 114)):
-        import cv2
-        import numpy as np
+        # Get model input details
+        self.input_name = self.session.get_inputs()[0].name
+        self.input_shape = self.session.get_inputs()[0].shape
+        self.input_height, self.input_width = self.input_shape[2], self.input_shape[3]
 
-        h, w = img.shape[:2]
-        scale = min(new_size / h, new_size / w)
-        nh, nw = int(round(h * scale)), int(round(w * scale))
-        resized = cv2.resize(img, (nw, nh), interpolation=cv2.INTER_LINEAR)
-        canvas = np.full((new_size, new_size, 3), color, dtype=img.dtype)
-        top = (new_size - nh) // 2
-        left = (new_size - nw) // 2
-        canvas[top : top + nh, left : left + nw] = resized
-        return canvas, scale, left, top
+        print(f"YOLOv8s ONNX loaded: {self.model_path}")
+        print(f"Input shape: {self.input_shape}")
 
-    def detect(
-        self, frame: Any, conf_threshold: float = 0.25, iou_threshold: float = 0.45
-    ) -> list[Detection]:
-        """
-        Return a list of Detection(bbox,label,score).
-        Falls back to [] if onnxruntime or model is missing.
-        """
-        if self._session is None:
-            return []
+    def preprocess(self, image: np.ndarray) -> np.ndarray:
+        """Preprocess image for YOLO inference"""
+        # Resize and normalize
+        resized = cv2.resize(image, (self.input_width, self.input_height))
 
-        import cv2
-        import numpy as np
+        # Convert BGR to RGB
+        rgb = cv2.cvtColor(resized, cv2.COLOR_BGR2RGB)
 
-        img = frame
-        if img is None:
-            return []
+        # Normalize to [0, 1] and convert to float32
+        normalized = rgb.astype(np.float32) / 255.0
 
-        # letterbox
-        inp, scale, dx, dy = self._letterbox(img, self.input_size)
-        x = cv2.cvtColor(inp, cv2.COLOR_BGR2RGB).astype(np.float32) / 255.0
-        x = np.transpose(x, (2, 0, 1))[None, ...]  # (1,3,H,W)
+        # Transpose to CHW format and add batch dimension
+        input_tensor = normalized.transpose(2, 0, 1)[np.newaxis, ...]
 
-        input_name = self._session.get_inputs()[0].name
-        outputs = self._session.run(None, {input_name: x})
+        return input_tensor
 
-        # YOLOv8 ONNX common format: (batch, num, 85) or (1, num, 84+)
-        preds = outputs[0]
-        if preds.ndim == 3:
-            preds = preds[0]
-        # preds: (num, 85) => [x,y,w,h, conf, cls_scores...]
-        boxes, scores, cls_ids = self._postprocess(preds, conf_threshold, iou_threshold)
+    def postprocess(self, outputs: np.ndarray, original_shape: tuple[int, int]) -> list[Detection]:
+        """Postprocess YOLO outputs to detections"""
+        predictions = outputs[0]  # Shape: [1, 84, 8400] for YOLOv8s
 
-        dets: list[Detection] = []
-        for (cx, cy, w, h), score, cls_id in zip(boxes, scores, cls_ids, strict=False):
-            # undo letterbox
-            x1 = int((cx - w / 2) - dx)
-            y1 = int((cy - h / 2) - dy)
-            x2 = int((cx + w / 2) - dx)
-            y2 = int((cy + h / 2) - dy)
-            # scale back to original
-            x1 = int(x1 / scale)
-            y1 = int(y1 / scale)
-            x2 = int(x2 / scale)
-            y2 = int(y2 / scale)
-            label = (
-                self.class_names[int(cls_id)]
-                if self.class_names and 0 <= int(cls_id) < len(self.class_names)
-                else str(int(cls_id))
+        # Transpose to [8400, 84]
+        predictions = predictions.transpose(0, 2, 1)[0]
+
+        detections = []
+        orig_h, orig_w = original_shape
+
+        for pred in predictions:
+            # Extract box coordinates and confidence
+            x_center, y_center, width, height = pred[0:4]
+            confidence = pred[4]
+            class_scores = pred[5:]
+
+            if confidence < self.confidence_threshold:
+                continue
+
+            # Get class with highest score
+            class_id = np.argmax(class_scores)
+            class_confidence = class_scores[class_id] * confidence
+
+            if class_confidence < self.confidence_threshold:
+                continue
+
+            # Convert to original image coordinates
+            x_center *= orig_w / self.input_width
+            y_center *= orig_h / self.input_height
+            width *= orig_w / self.input_width
+            height *= orig_h / self.input_height
+
+            # Convert to bbox format
+            x1 = int(x_center - width / 2)
+            y1 = int(y_center - height / 2)
+            x2 = int(x_center + width / 2)
+            y2 = int(y_center + height / 2)
+
+            # Ensure bbox is within image bounds
+            x1 = max(0, min(x1, orig_w))
+            y1 = max(0, min(y1, orig_h))
+            x2 = max(0, min(x2, orig_w))
+            y2 = max(0, min(y2, orig_h))
+
+            detection = Detection(
+                class_name=self.UI_CLASSES.get(class_id, f"class_{class_id}"),
+                confidence=float(class_confidence),
+                bbox=(x1, y1, x2, y2),
+                center=(int(x_center), int(y_center)),
             )
-            dets.append(
-                Detection(
-                    bbox=(max(0, x1), max(0, y1), max(0, x2), max(0, y2)),
-                    label=label,
-                    score=float(score),
-                )
+
+            detections.append(detection)
+
+        # Apply Non-Maximum Suppression
+        detections = self._apply_nms(detections, iou_threshold=0.5)
+
+        return detections
+
+    def _apply_nms(self, detections: list[Detection], iou_threshold: float) -> list[Detection]:
+        """Apply Non-Maximum Suppression"""
+        if not detections:
+            return detections
+
+        # Sort by confidence
+        detections.sort(key=lambda x: x.confidence, reverse=True)
+
+        filtered_detections = []
+
+        for detection in detections:
+            # Check if this detection overlaps significantly with any kept detection
+            keep = True
+            for kept_detection in filtered_detections:
+                if self._calculate_iou(detection.bbox, kept_detection.bbox) > iou_threshold:
+                    keep = False
+                    break
+
+            if keep:
+                filtered_detections.append(detection)
+
+        return filtered_detections
+
+    def _calculate_iou(
+        self, box1: tuple[int, int, int, int], box2: tuple[int, int, int, int]
+    ) -> float:
+        """Calculate Intersection over Union"""
+        x1_1, y1_1, x2_1, y2_1 = box1
+        x1_2, y1_2, x2_2, y2_2 = box2
+
+        # Calculate intersection area
+        x1_i = max(x1_1, x1_2)
+        y1_i = max(y1_1, y1_2)
+        x2_i = min(x2_1, x2_2)
+        y2_i = min(y2_1, y2_2)
+
+        if x2_i <= x1_i or y2_i <= y1_i:
+            return 0.0
+
+        intersection_area = (x2_i - x1_i) * (y2_i - y1_i)
+
+        # Calculate union area
+        area1 = (x2_1 - x1_1) * (y2_1 - y1_1)
+        area2 = (x2_2 - x1_2) * (y2_2 - y1_2)
+        union_area = area1 + area2 - intersection_area
+
+        return intersection_area / union_area if union_area > 0 else 0.0
+
+    def detect(self, image: np.ndarray) -> list[Detection]:
+        """Detect UI elements in image"""
+        original_shape = image.shape[:2]  # (height, width)
+
+        # Preprocess
+        input_tensor = self.preprocess(image)
+
+        # Run inference
+        outputs = self.session.run(None, {self.input_name: input_tensor})
+
+        # Postprocess
+        detections = self.postprocess(outputs, original_shape)
+
+        return detections
+
+    def draw_detections(self, image: np.ndarray, detections: list[Detection]) -> np.ndarray:
+        """Draw bounding boxes and labels on image"""
+        result_image = image.copy()
+
+        for detection in detections:
+            x1, y1, x2, y2 = detection.bbox
+
+            # Draw bounding box
+            cv2.rectangle(result_image, (x1, y1), (x2, y2), (0, 255, 0), 2)
+
+            # Draw label
+            label = f"{detection.class_name}: {detection.confidence:.2f}"
+            label_size = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 2)[0]
+            cv2.rectangle(
+                result_image,
+                (x1, y1 - label_size[1] - 10),
+                (x1 + label_size[0], y1),
+                (0, 255, 0),
+                -1,
             )
-        return dets
+            cv2.putText(
+                result_image, label, (x1, y1 - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2
+            )
 
-    def _postprocess(self, preds, conf_thres: float, iou_thres: float):
-        import numpy as np
-
-        # If preds already separated, handle; else assume [cx,cy,w,h, conf, *cls]
-        if preds.shape[1] < 6:
-            return [], [], []
-
-        boxes = preds[:, :4]
-        obj = preds[:, 4:5]
-        cls = preds[:, 5:]
-        cls_ids = np.argmax(cls, axis=1)
-        cls_scores = cls[np.arange(len(cls_ids)), cls_ids]
-        scores = obj.squeeze() * cls_scores
-        mask = scores >= conf_thres
-        boxes = boxes[mask]
-        scores = scores[mask]
-        cls_ids = cls_ids[mask]
-
-        # NMS on xywh boxes after converting to xyxy
-        if len(boxes) == 0:
-            return [], [], []
-
-        cxcywh = boxes
-        xyxy = cxcywh.copy()
-        xyxy[:, 0] = cxcywh[:, 0] - cxcywh[:, 2] / 2
-        xyxy[:, 1] = cxcywh[:, 1] - cxcywh[:, 3] / 2
-        xyxy[:, 2] = cxcywh[:, 0] + cxcywh[:, 2] / 2
-        xyxy[:, 3] = cxcywh[:, 1] + cxcywh[:, 3] / 2
-
-        keep = self._nms(xyxy, scores, iou_thres)
-        return cxcywh[keep], scores[keep], cls_ids[keep]
-
-    def _nms(self, boxes, scores, iou_thres):
-        idxs = scores.argsort()[::-1]
-        keep = []
-        while len(idxs) > 0:
-            i = idxs[0]
-            keep.append(i)
-            if len(idxs) == 1:
-                break
-            ious = self._iou(boxes[i], boxes[idxs[1:]])
-            idxs = idxs[1:][ious < iou_thres]
-        return keep
-
-    def _iou(self, box, boxes):
-        import numpy as np
-
-        x1 = np.maximum(box[0], boxes[:, 0])
-        y1 = np.maximum(box[1], boxes[:, 1])
-        x2 = np.minimum(box[2], boxes[:, 2])
-        y2 = np.minimum(box[3], boxes[:, 3])
-        inter = np.maximum(0, x2 - x1) * np.maximum(0, y2 - y1)
-        area1 = (box[2] - box[0]) * (box[3] - box[1])
-        area2 = (boxes[:, 2] - boxes[:, 0]) * (boxes[:, 3] - boxes[:, 1])
-        union = area1 + area2 - inter + 1e-6
-        return inter / union
+        return result_image

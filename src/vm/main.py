@@ -13,7 +13,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from src.vm.agents import AppControllerAgent, VMNavigatorAgent, VMSession, VMTarget
+from vm.agents import AppControllerAgent, VMNavigatorAgent, VMSession, VMTarget
 
 
 @dataclass
