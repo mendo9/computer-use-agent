@@ -13,8 +13,11 @@ A production-ready AI system that automates GUI interactions in Windows VMs with
 
 **Key Technologies:**
 
-- **YOLOv8s-ONNX**: Real-time UI element detection 
-- **PaddleOCR**: Text recognition and verification
+- **YOLOv8s-ONNX**: Real-time UI element detection with UI-focused class filtering
+- **PaddleOCR**: Professional text recognition and verification with multi-language support
+- **UIFinder**: Advanced computer vision system combining YOLO + OCR with spatial reasoning
+- **ActionVerifier**: Automated verification of UI interactions and outcomes
+- **AI Agent Tools**: Standardized function interface for any AI framework
 - **VNC/RDP Protocol**: Flexible VM connection options
 - **Patient Safety**: Healthcare-grade identity verification
 
@@ -114,6 +117,216 @@ export TARGET_BUTTON="Submit"
 vm-automation
 ```
 
+## 🤖 AI Agent Computer Vision Tools
+
+The system includes professional computer vision tools designed for AI agent automation. Any AI agent can use these tools with simple prompts - no complex setup required.
+
+### 🔧 Core Vision Components
+
+**YOLOv8s-ONNX Detector:**
+- Real-time UI element detection
+- UI-focused class filtering (removes irrelevant objects like animals, food)
+- Optimized for screen/desktop environments
+- CPU-optimized ONNX inference
+
+**PaddleOCR Integration:**  
+- Professional text recognition and extraction
+- Multi-language support
+- Region-aware text detection
+- High-confidence text filtering
+
+**UIFinder (Advanced Vision System):**
+- Combines YOLO + OCR with spatial reasoning
+- Intelligently merges nearby visual and text elements
+- Identifies clickable elements and input fields
+- Provides unified UI element representation
+
+**ActionVerifier:**
+- Automated verification of UI interactions
+- Screenshot-based change detection
+- Text input verification
+- Element presence confirmation
+
+### 🎯 AI Agent Function Tools
+
+**Simple Function Interface:**
+
+```python
+from agent.vision_tools import *
+
+# Analyze current screen
+analysis = analyze_screen("What buttons and forms are visible?")
+
+# Find specific elements  
+button = find_element("Submit button")
+field = find_element("Username input field")
+
+# Perform actions
+click_element(button)
+type_text_in_field("john.doe", field)
+
+# Verify outcomes
+verify_action("Form should be submitted successfully")
+```
+
+**Available Functions:**
+- `analyze_screen(prompt)` - Analyze screen contents with natural language
+- `find_element(description)` - Find UI elements by description  
+- `click_element(element)` - Click on elements or coordinates
+- `type_text_in_field(text, field)` - Type text in input fields
+- `verify_action(expected)` - Verify action outcomes
+- `wait_for_element(description)` - Wait for elements to appear
+- `scroll_screen(direction, pixels)` - Scroll screen content
+- `take_screenshot(path)` - Capture screen images
+
+### 🔌 AI Framework Integration
+
+**OpenAI Functions:**
+
+```python
+from openai import OpenAI
+from agent.function_definitions import get_vision_function_tools
+from agent.vision_tools import *
+
+client = OpenAI()
+tools = get_vision_function_tools()
+
+response = client.chat.completions.create(
+    model="gpt-4",
+    messages=[{"role": "user", "content": "Click the Submit button"}],
+    tools=tools,
+    tool_choice="auto"
+)
+```
+
+**Claude Tools:**
+
+```python
+import anthropic
+from agent.function_definitions import get_vision_function_tools
+
+client = anthropic.Anthropic()
+tools = get_vision_function_tools()
+
+response = client.messages.create(
+    model="claude-3-opus-20240229",
+    tools=tools,
+    messages=[{"role": "user", "content": "Fill out this form"}]
+)
+```
+
+**Other Frameworks:**
+- Compatible with any AI framework that supports function calling
+- JSON schema definitions provided for easy integration
+- Standardized prompt-to-action interface
+
+### 🎬 Usage Examples
+
+**Form Automation:**
+```python
+# AI agent can automate forms with simple prompts
+analysis = analyze_screen("Analyze this login form")
+username_field = find_element("username field") 
+type_text_in_field("user@example.com", username_field)
+
+password_field = find_element("password field")
+type_text_in_field("secure_pass", password_field)
+
+submit_btn = find_element("login button")
+click_element(submit_btn)
+
+verify_action("Login should be successful")
+```
+
+**Web Navigation:**
+```python
+# Navigate websites with computer vision
+search_box = find_element("search box")
+type_text_in_field("computer vision AI", search_box)
+
+search_btn = find_element("search button")
+click_element(search_btn)
+
+results = wait_for_element("search results", max_attempts=10)
+verify_action("Search results should be displayed")
+```
+
+**Settings Management:**
+```python
+# Navigate application settings
+settings = find_element("settings menu")
+click_element(settings)
+
+privacy_tab = find_element("privacy tab")
+click_element(privacy_tab)
+
+toggle = find_element("data collection toggle")
+click_element(toggle)
+
+verify_action("Privacy settings should be updated")
+```
+
+### ⚙️ Configuration Options
+
+```python
+from agent.vision_tools import configure_vision_tools
+
+# High precision mode (healthcare, financial apps)
+configure_vision_tools(
+    confidence_threshold=0.8,
+    use_ui_focused=True,
+    ocr_language="en"
+)
+
+# General automation mode
+configure_vision_tools(
+    confidence_threshold=0.6,
+    use_ui_focused=True, 
+    ocr_language="en"
+)
+
+# Diverse content detection (full COCO classes)
+configure_vision_tools(
+    confidence_threshold=0.5,
+    use_ui_focused=False,
+    ocr_language="en"
+)
+```
+
+### 📁 Vision System Structure
+
+```
+src/
+├── ocr/                     # Computer vision components
+│   ├── vision/              
+│   │   ├── detector.py      # YOLOv8s-ONNX UI detection
+│   │   ├── ocr.py          # PaddleOCR text recognition
+│   │   └── finder.py       # UIFinder (YOLO + OCR fusion)
+│   ├── verification/
+│   │   └── verification.py # ActionVerifier for outcome validation
+│   ├── models/             # Pre-trained models
+│   │   ├── yolov8s.onnx   # YOLO model for inference
+│   │   └── yolov8s.pt     # YOLO PyTorch model
+│   └── setup_models.py    # Model download and setup
+├── agent/                  # AI Agent Tools  
+│   ├── vision_tools.py     # Main function interface
+│   ├── function_definitions.py # JSON schemas for AI frameworks
+│   └── examples.py         # Usage examples and demos
+```
+
+### 🧪 Testing Vision Tools
+
+```bash
+# Test vision components
+uv run python -c "from agent.vision_tools import analyze_screen; print('✅ Vision tools ready')"
+
+# Run examples (simulation mode)
+uv run python src/agent/examples.py
+
+# Setup models if not already downloaded
+uv run python src/ocr/setup_models.py
+```
+
 ## 🔗 Connection Types
 
 The system supports both VNC and RDP connections through a flexible abstraction layer:
@@ -154,23 +367,33 @@ The same computer vision and UI automation logic works seamlessly with both conn
 ```
 ├── src/
 │   ├── main.py              # Main orchestrator (consolidated entry point)
-│   ├── setup_models.py      # Download YOLO & PaddleOCR models
-│   ├── agents/              # AI agent implementations
-│   │   ├── vm_navigator.py  # Agent 1: VM connection & navigation
-│   │   ├── app_controller.py # Agent 2: GUI interactions
-│   │   └── shared_context.py # Shared data structures
-│   ├── connections/         # Connection abstraction layer
-│   │   ├── base.py          # Abstract base classes
-│   │   ├── vnc_connection.py # VNC implementation
-│   │   └── rdp_connection.py # RDP implementation
-│   ├── tools/               # Low-level automation tools
-│   │   ├── screen_capture.py # Connection-agnostic screen capture
-│   │   ├── input_actions.py  # Connection-agnostic input actions
-│   │   └── verification.py   # Action verification
-│   └── vision/              # Computer vision components
-│       ├── ui_finder.py     # YOLO-based UI detection
-│       ├── ocr_reader.py    # PaddleOCR wrapper
-│       └── yolo_detector.py # YOLO model interface
+│   ├── ocr/                 # Computer vision and OCR components
+│   │   ├── vision/          # Core vision system
+│   │   │   ├── detector.py  # YOLOv8s-ONNX UI detection
+│   │   │   ├── ocr.py      # PaddleOCR text recognition
+│   │   │   └── finder.py   # UIFinder (YOLO + OCR fusion)
+│   │   ├── verification/    # Action verification system
+│   │   │   └── verification.py # ActionVerifier for outcome validation
+│   │   ├── models/         # Pre-trained models
+│   │   │   ├── yolov8s.onnx # YOLO ONNX model
+│   │   │   └── yolov8s.pt  # YOLO PyTorch model
+│   │   ├── adapters/       # Input/output adapters
+│   │   ├── actions/        # Primitive actions
+│   │   ├── runtime/        # Runtime context management
+│   │   └── setup_models.py # Model download and setup
+│   ├── agent/              # AI Agent Tools
+│   │   ├── vision_tools.py # Function interface for AI agents
+│   │   ├── function_definitions.py # JSON schemas for AI frameworks
+│   │   └── examples.py     # Usage examples and demos
+│   ├── vm/                 # VM connection management
+│   │   ├── connections/    # Connection implementations
+│   │   │   ├── base.py     # Abstract base classes
+│   │   │   ├── vnc_connection.py # VNC implementation
+│   │   │   ├── rdp_connection.py # RDP implementation
+│   │   │   └── desktop_connection.py # Local desktop connection
+│   │   └── agents/         # VM-specific agent implementations
+│   │       ├── vm_navigator.py # Agent 1: VM connection & navigation
+│   │       └── app_controller.py # Agent 2: GUI interactions
 ├── tests/                   # Test suite
 │   ├── mock_components.py   # Mock implementations for testing
 │   ├── test_integration.py  # Integration tests

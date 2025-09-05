@@ -1,46 +1,52 @@
-from dataclasses import dataclass
-
-# Using superior unified vision implementations
+# Re-export UIElement from the comprehensive vision finder module
+# Legacy compatibility - use UIFinder.find_ui_elements() instead
 from ocr.vision.detector import Detection
+from ocr.vision.finder import UIElement
 from ocr.vision.ocr import TextDetection
 
 
-@dataclass
-class UIElement:
-    bbox: tuple[int, int, int, int]
-    center: tuple[int, int]
-    text: str | None = None
-    label: str | None = None
-    score: float = 0.0
-    source: str = "unknown"  # "ocr" | "yolo" | "merged"
+def merge_detections_and_text(
+    dets: list[Detection], text_detections: list[TextDetection]
+) -> list[UIElement]:
+    """
+    DEPRECATED: Use UIFinder.find_ui_elements() instead.
+    Legacy function for compatibility - will be removed in future versions.
+    """
+    import warnings
 
+    warnings.warn(
+        "merge_detections_and_text is deprecated. Use UIFinder.find_ui_elements() instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
 
-def merge_detections_and_text(dets: list[Detection], text_detections: list[TextDetection]) -> list[UIElement]:
-    """Fusion by proximity (center-to-center) using superior data structures."""
     elems: list[UIElement] = []
-    
-    # Add YOLO detections
+
+    # Add YOLO detections as detected elements
     for d in dets:
         elems.append(
             UIElement(
-                bbox=d.bbox, 
-                center=d.center,  # VM Detection already has center
-                label=d.class_name,  # VM Detection uses class_name not label
-                score=d.confidence,  # VM Detection uses confidence not score
-                source="yolo"
+                element_type="detected",
+                bbox=d.bbox,
+                center=d.center,
+                confidence=d.confidence,
+                yolo_detection=d,
+                description=f"{d.class_name} ({d.confidence:.2f})",
             )
         )
-    
-    # Add text detections
+
+    # Add text detections as text elements
     for t in text_detections:
         elems.append(
             UIElement(
-                bbox=t.rect_bbox,  # TextDetection has rect_bbox for rectangular bounds
-                center=t.center,   # TextDetection already has center
-                text=t.text, 
-                score=t.confidence,  # TextDetection uses confidence not score
-                source="ocr"
+                element_type="text",
+                bbox=t.rect_bbox,
+                center=t.center,
+                confidence=t.confidence,
+                text_detection=t,
+                text=t.text,
+                description=f"Text: '{t.text}' ({t.confidence:.2f})",
             )
         )
-    
+
     return elems

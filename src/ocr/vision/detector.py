@@ -22,8 +22,23 @@ class Detection:
 class YOLODetector:
     """YOLOv8s-ONNX detector for UI elements"""
 
-    # COCO classes relevant for UI detection
+    # COCO classes relevant for UI and screen automation
+    # Focused on objects commonly found in screen/desktop environments
     UI_CLASSES = {
+        0: "person",  # For user avatars, profile pictures
+        62: "tv",  # For monitors, displays
+        63: "laptop",  # For device detection
+        64: "mouse",  # For peripheral detection
+        65: "remote",  # For control devices
+        66: "keyboard",  # For input device detection
+        67: "cell phone",  # For mobile device detection
+        73: "book",  # For document/reading interfaces
+        74: "clock",  # For time displays, widgets
+        76: "scissors",  # For cut/edit tools in UI
+    }
+
+    # Full COCO class set (kept for completeness but filtered for UI relevance)
+    FULL_COCO_CLASSES = {
         0: "person",
         1: "bicycle",
         2: "car",
@@ -106,10 +121,23 @@ class YOLODetector:
         79: "toothbrush",
     }
 
-    def __init__(self, model_path: str, confidence_threshold: float = 0.6):
-        """Initialize YOLOv8s-ONNX detector"""
+    def __init__(
+        self, model_path: str, confidence_threshold: float = 0.6, use_ui_focused: bool = True
+    ):
+        """
+        Initialize YOLOv8s-ONNX detector
+
+        Args:
+            model_path: Path to ONNX model file
+            confidence_threshold: Minimum confidence for detections
+            use_ui_focused: If True, filter to UI-relevant classes only
+        """
         self.model_path = Path(model_path)
         self.confidence_threshold = confidence_threshold
+        self.use_ui_focused = use_ui_focused
+
+        # Choose class set based on focus preference
+        self.active_classes = self.UI_CLASSES if use_ui_focused else self.FULL_COCO_CLASSES
 
         # Initialize ONNX Runtime session
         self.session = ort.InferenceSession(str(self.model_path))
@@ -119,8 +147,10 @@ class YOLODetector:
         self.input_shape = self.session.get_inputs()[0].shape
         self.input_height, self.input_width = self.input_shape[2], self.input_shape[3]
 
+        class_mode = "UI-focused" if use_ui_focused else "full COCO"
         print(f"YOLOv8s ONNX loaded: {self.model_path}")
         print(f"Input shape: {self.input_shape}")
+        print(f"Detection mode: {class_mode} ({len(self.active_classes)} classes)")
 
     def preprocess(self, image: np.ndarray) -> np.ndarray:
         """Preprocess image for YOLO inference"""
@@ -164,6 +194,10 @@ class YOLODetector:
             if class_confidence < self.confidence_threshold:
                 continue
 
+            # Skip classes not in our active set (for UI-focused mode)
+            if class_id not in self.active_classes:
+                continue
+
             # Convert to original image coordinates
             x_center *= orig_w / self.input_width
             y_center *= orig_h / self.input_height
@@ -183,7 +217,7 @@ class YOLODetector:
             y2 = max(0, min(y2, orig_h))
 
             detection = Detection(
-                class_name=self.UI_CLASSES.get(class_id, f"class_{class_id}"),
+                class_name=self.active_classes.get(class_id, f"class_{class_id}"),
                 confidence=float(class_confidence),
                 bbox=(x1, y1, x2, y2),
                 center=(int(x_center), int(y_center)),
