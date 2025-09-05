@@ -22,9 +22,10 @@ def simple_form_automation_example():
 
     # 1. Analyze the current screen
     analysis = analyze_screen("What form fields and buttons are visible?")
-    print(f"Found {analysis['summary']['total_elements']} UI elements")
-    print(f"Clickable elements: {analysis['summary']['clickable_count']}")
-    print(f"Input fields: {analysis['summary']['input_fields_count']}")
+    print(f"Found {analysis['total_elements']} UI elements")
+    print(f"Text regions: {analysis['total_text_regions']}")
+    if "summary" in analysis:
+        print(f"Summary: {analysis['summary']}")
 
     # 2. Find and fill username field
     username_field = find_element("username field")
@@ -73,8 +74,8 @@ def web_automation_example():
             click_element(search_button)
 
             # Wait for results to load
-            results = wait_for_element("search results", max_attempts=10, delay=1.0)
-            if results:
+            results = wait_for_element("search results", max_attempts=10)
+            if results.get("success", False):
                 print("Search completed successfully")
 
                 # Verify results appeared
@@ -118,11 +119,14 @@ def error_handling_example():
 
             # Alternative approach: analyze screen for available options
             analysis = analyze_screen("What buttons and options are available?")
-            available_elements = [elem for elem in analysis["ui_elements"] if elem["text"]]
+            if "error" not in analysis:
+                available_elements = [elem for elem in analysis["ui_elements"] if elem.get("text")]
 
-            print("Available text elements:")
-            for elem in available_elements[:5]:  # Show first 5
-                print(f"  - {elem['text']} ({elem['type']})")
+                print("Available text elements:")
+                for elem in available_elements[:5]:  # Show first 5
+                    print(f"  - {elem['text']} ({elem['type']})")
+            else:
+                print(f"Analysis failed: {analysis['error']}")
 
     except Exception as e:
         print(f"Error occurred: {e}")
@@ -145,8 +149,8 @@ def ai_agent_integration_example():
             analysis = analyze_screen("Analyze form fields and buttons")
 
             # AI would interpret the analysis and decide next steps
-            if analysis["summary"]["input_fields_count"] > 0:
-                print("AI: I see there are input fields. Let me fill them out.")
+            if analysis.get("total_text_regions", 0) > 0 or analysis.get("total_elements", 0) > 0:
+                print("AI: I see there are UI elements. Let me interact with them.")
 
                 # Find first field and fill it
                 first_field = find_element("first input field")
@@ -156,9 +160,10 @@ def ai_agent_integration_example():
         elif "take screenshot" in user_request.lower():
             screenshot = take_screenshot("/tmp/ai_screenshot.png")
             analysis = analyze_screen("Describe what's visible on screen")
-            print(
-                f"AI: I took a screenshot and found {analysis['summary']['total_elements']} elements"
-            )
+            if "error" not in analysis:
+                print(f"AI: I took a screenshot and found {analysis['total_elements']} elements")
+            else:
+                print(f"AI: Screenshot analysis failed: {analysis['error']}")
 
         return "Task completed by AI agent"
 
@@ -172,17 +177,16 @@ def configuration_example():
     print("=== Configuration Example ===")
 
     # Standard configuration for general use
-    configure_vision_tools(confidence_threshold=0.6, use_ui_focused=True, ocr_language="en")
+    configure_vision_tools(confidence_threshold=0.6, ocr_language="en")
     print("Configured for general UI automation")
 
     # High-precision configuration for important tasks
-    configure_vision_tools(confidence_threshold=0.8, use_ui_focused=True, ocr_language="en")
+    configure_vision_tools(confidence_threshold=0.8, ocr_language="en")
     print("Configured for high-precision tasks")
 
     # Configuration for diverse content detection
     configure_vision_tools(
         confidence_threshold=0.5,
-        use_ui_focused=False,  # Use full COCO classes
         ocr_language="en",
     )
     print("Configured for diverse content detection")

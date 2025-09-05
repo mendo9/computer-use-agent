@@ -1,5 +1,6 @@
 """Professional AI Agent Function Tools for Computer Vision Automation
 
+Updated to use the unified OCR architecture instead of the old UIFinder system.
 Provides standardized function tools for AI agents to automate computer interactions
 using computer vision. Designed to work with any AI framework - just provide prompts.
 
@@ -22,8 +23,11 @@ from typing import Any
 import cv2
 import numpy as np
 
-from ocr.verification.verification import ActionVerifier
-from ocr.vision.finder import UIFinder
+from ocr import (
+    find_elements_by_text,
+    verify_click_success,
+    verify_element_present,
+)
 
 
 @dataclass
@@ -31,435 +35,393 @@ class VisionToolsConfig:
     """Configuration for vision tools"""
 
     models_dir: Path = Path(__file__).parent.parent / "ocr" / "models"
-    yolo_model_path: str | None = None
     confidence_threshold: float = 0.6
-    use_ui_focused: bool = True
     ocr_language: str = "en"
 
     def __post_init__(self):
-        if self.yolo_model_path is None:
-            self.yolo_model_path = str(self.models_dir / "yolov8s.onnx")
+        # Ensure models directory exists
+        self.models_dir.mkdir(parents=True, exist_ok=True)
 
 
 # Global configuration instance
 _config = VisionToolsConfig()
-_ui_finder: UIFinder | None = None
-_verifier: ActionVerifier | None = None
 
 
-def _get_ui_finder() -> UIFinder:
-    """Get or create UIFinder instance"""
-    global _ui_finder, _config
-
-    if _ui_finder is None:
-        _ui_finder = UIFinder(
-            yolo_model_path=_config.yolo_model_path,
-            yolo_confidence=_config.confidence_threshold,
-            use_gpu=False,  # Default to CPU for compatibility
-        )
-
-    return _ui_finder
+def configure_vision_tools(confidence_threshold: float = 0.6, ocr_language: str = "en"):
+    """Configure vision tools settings"""
+    global _config
+    _config.confidence_threshold = confidence_threshold
+    _config.ocr_language = ocr_language
 
 
-def _get_verifier() -> ActionVerifier:
-    """Get or create ActionVerifier instance"""
-    global _verifier
+def _capture_screen() -> np.ndarray | None:
+    """Capture current screen using local desktop automation"""
+    try:
+        from automation.desktop_control import DesktopControl
 
-    if _verifier is None:
-        ui_finder = _get_ui_finder()
-        _verifier = ActionVerifier(ui_finder, ui_finder.ocr_reader)
-
-    return _verifier
-
-
-def take_screenshot(save_path: str | None = None) -> np.ndarray:
-    """
-    Take a screenshot of the current desktop
-
-    Args:
-        save_path: Optional path to save the screenshot
-
-    Returns:
-        Screenshot as numpy array
-
-    Example:
-        screenshot = take_screenshot("/tmp/screen.png")
-    """
-    # This is a placeholder - would need to be implemented per platform
-    # For now, return a dummy image
-    from vm.connections.desktop_connection import DesktopConnection
-
-    conn = DesktopConnection()
-    success, image = conn.capture_screen()
-
-    if not success or image is None:
-        raise RuntimeError("Failed to capture screenshot")
-
-    if save_path:
-        cv2.imwrite(save_path, image)
-
-    return image
-
-
-def analyze_screen(prompt: str, screenshot: np.ndarray | None = None) -> dict[str, Any]:
-    """
-    Analyze the current screen and return detailed information
-
-    Args:
-        prompt: Natural language prompt describing what to analyze
-        screenshot: Optional screenshot to analyze (takes new one if None)
-
-    Returns:
-        Dictionary with analysis results
-
-    Example:
-        result = analyze_screen("What buttons and input fields are visible?")
-        print(f"Found {len(result['ui_elements'])} UI elements")
-    """
-    if screenshot is None:
-        screenshot = take_screenshot()
-
-    ui_finder = _get_ui_finder()
-
-    # Find all UI elements
-    ui_elements = ui_finder.find_ui_elements(screenshot)
-
-    # Find clickable elements specifically
-    clickable_elements = ui_finder.find_clickable_elements(screenshot)
-
-    # Find input fields
-    input_fields = ui_finder.find_input_fields(screenshot)
-
-    # Extract text content
-    text_detections = ui_finder.ocr_reader.read_text(screenshot)
-
-    return {
-        "prompt": prompt,
-        "ui_elements": [
-            {
-                "type": elem.element_type,
-                "bbox": elem.bbox,
-                "center": elem.center,
-                "confidence": elem.confidence,
-                "text": elem.text,
-                "description": elem.description,
-            }
-            for elem in ui_elements
-        ],
-        "clickable_elements": len(clickable_elements),
-        "input_fields": len(input_fields),
-        "text_content": [
-            {
-                "text": text.text,
-                "confidence": text.confidence,
-                "bbox": text.rect_bbox,
-                "center": text.center,
-            }
-            for text in text_detections
-        ],
-        "summary": {
-            "total_elements": len(ui_elements),
-            "clickable_count": len(clickable_elements),
-            "input_fields_count": len(input_fields),
-            "text_blocks_count": len(text_detections),
-        },
-    }
-
-
-def find_element(description: str, screenshot: np.ndarray | None = None) -> dict[str, Any] | None:
-    """
-    Find a specific UI element by description
-
-    Args:
-        description: Natural language description of the element to find
-        screenshot: Optional screenshot to search in
-
-    Returns:
-        Element information dictionary or None if not found
-
-    Example:
-        element = find_element("Submit button")
-        element = find_element("Username input field")
-        element = find_element("Settings menu")
-    """
-    if screenshot is None:
-        screenshot = take_screenshot()
-
-    ui_finder = _get_ui_finder()
-
-    # Try finding by text first
-    elements = ui_finder.find_element_by_text(screenshot, description)
-
-    if not elements:
-        # Fall back to analyzing all elements and finding best match
-        all_elements = ui_finder.find_ui_elements(screenshot)
-
-        # Simple keyword matching for now (could be enhanced with NLP)
-        keywords = description.lower().split()
-        best_match = None
-        best_score = 0
-
-        for element in all_elements:
-            score = 0
-
-            # Score based on text content
-            if element.text:
-                text_lower = element.text.lower()
-                for keyword in keywords:
-                    if keyword in text_lower:
-                        score += 10
-
-            # Score based on element type
-            if element.description:
-                desc_lower = element.description.lower()
-                for keyword in keywords:
-                    if keyword in desc_lower:
-                        score += 5
-
-            if score > best_score:
-                best_score = score
-                best_match = element
-
-        elements = [best_match] if best_match else []
-
-    if not elements:
+        desktop = DesktopControl()
+        success, screenshot = desktop.capture_screen()
+        return screenshot if success else None
+    except ImportError:
+        # Fallback for environments without local automation
+        return None
+    except Exception:
         return None
 
-    # Return the best element
-    best_element = max(elements, key=lambda x: x.confidence)
 
-    return {
-        "type": best_element.element_type,
-        "bbox": best_element.bbox,
-        "center": best_element.center,
-        "confidence": best_element.confidence,
-        "text": best_element.text,
-        "description": best_element.description,
-        "clickable": True,  # Assume found elements are clickable
-    }
-
-
-def click_element(
-    element: dict[str, Any] | tuple[int, int], button: str = "left"
-) -> dict[str, Any]:
+def analyze_screen(prompt: str) -> dict[str, Any]:
     """
-    Click on a UI element or coordinates
+    Analyze screen contents with natural language prompt
 
     Args:
-        element: Element dict from find_element() or (x, y) coordinates
-        button: Mouse button ("left", "right", "middle")
+        prompt: Natural language description of what to analyze
 
     Returns:
-        Action result dictionary
-
-    Example:
-        element = find_element("Submit button")
-        result = click_element(element)
-
-        # Or click coordinates directly
-        result = click_element((100, 200))
+        Dict with analysis results
     """
-    if isinstance(element, tuple):
-        x, y = element
-    elif isinstance(element, dict) and "center" in element:
+    screenshot = _capture_screen()
+    if screenshot is None:
+        return {"error": "Screen capture not available", "elements": [], "text": []}
+
+    try:
+        # Use analyze_screen_content for complete analysis
+        from ocr import analyze_screen_content
+
+        analysis = analyze_screen_content(
+            screenshot, prompt, confidence_threshold=_config.confidence_threshold
+        )
+
+        return {
+            "prompt": prompt,
+            "ui_elements": [
+                {
+                    "type": elem.element_type,
+                    "bbox": elem.bbox,
+                    "center": elem.center,
+                    "confidence": elem.confidence,
+                    "text": elem.text,
+                    "description": elem.description,
+                }
+                for elem in analysis.ui_elements
+            ],
+            "text_elements": [
+                {
+                    "type": elem.element_type,
+                    "bbox": elem.bbox,
+                    "center": elem.center,
+                    "confidence": elem.confidence,
+                    "text": elem.text,
+                    "description": elem.description,
+                }
+                for elem in analysis.text_elements
+            ],
+            "total_elements": len(analysis.ui_elements),
+            "total_text_regions": len(analysis.text_elements),
+            "summary": analysis.summary,
+        }
+    except Exception as e:
+        return {"error": f"Screen analysis failed: {e}", "elements": [], "text": []}
+
+
+def find_element(description: str) -> dict[str, Any] | None:
+    """
+    Find UI element by description
+
+    Args:
+        description: Natural language description of element to find
+
+    Returns:
+        Dict with element info or None if not found
+    """
+    screenshot = _capture_screen()
+    if screenshot is None:
+        return {"error": "Screen capture not available"}
+
+    try:
+        elements = find_elements_by_text(
+            screenshot, description, confidence_threshold=_config.confidence_threshold
+        )
+
+        if not elements:
+            return None
+
+        # Return the most confident element
+        best_element = max(elements, key=lambda x: x.confidence)
+
+        return {
+            "element_type": best_element.element_type,
+            "bbox": best_element.bbox,
+            "center": best_element.center,
+            "confidence": best_element.confidence,
+            "text": best_element.text,
+            "description": best_element.description,
+        }
+
+    except Exception as e:
+        return {"error": f"Element search failed: {e}"}
+
+
+def click_element(element: dict[str, Any]) -> dict[str, Any]:
+    """
+    Click on element or coordinates
+
+    Args:
+        element: Element dict with center coordinates
+
+    Returns:
+        Dict with click result
+    """
+    if "error" in element:
+        return element
+
+    if "center" not in element:
+        return {"error": "Element missing center coordinates"}
+
+    try:
+        # Take before screenshot for verification
+        before_screenshot = _capture_screen()
+        if before_screenshot is None:
+            return {"error": "Cannot capture screen for verification"}
+
+        # Perform click using local desktop automation
         x, y = element["center"]
-    else:
-        raise ValueError("Element must be a dictionary with 'center' key or (x, y) tuple")
+        try:
+            from automation.desktop_control import DesktopControl
 
-    # Take before screenshot for verification
-    before_screenshot = take_screenshot()
+            desktop = DesktopControl()
+            click_result = desktop.click(x, y)
+            if not click_result.success:
+                return {"error": f"Click failed: {click_result.message}"}
+        except ImportError:
+            return {"error": "Desktop automation not available"}
+        except Exception as e:
+            return {"error": f"Click failed: {e}"}
 
-    # Perform click (this would need platform-specific implementation)
-    from vm.connections.desktop_connection import DesktopConnection
+        # Wait for UI to update
+        time.sleep(1.0)
 
-    conn = DesktopConnection()
-    action_result = conn.click(x, y, button)
+        # Take after screenshot and verify
+        after_screenshot = _capture_screen()
+        if after_screenshot is None:
+            return {"error": "Cannot capture screen after click"}
 
-    # Wait a moment for UI to update
-    time.sleep(0.5)
+        verification = verify_click_success(before_screenshot, after_screenshot)
 
-    # Take after screenshot
-    after_screenshot = take_screenshot()
+        return {
+            "action": "click",
+            "target": element,
+            "success": verification.success,
+            "message": verification.message,
+            "confidence": verification.confidence,
+        }
 
-    return {
-        "success": action_result.success,
-        "message": action_result.message,
-        "coordinates": (x, y),
-        "button": button,
-        "screen_changed": not np.array_equal(before_screenshot, after_screenshot),
-    }
+    except Exception as e:
+        return {"error": f"Click failed: {e}"}
 
 
-def type_text_in_field(text: str, field_element: dict[str, Any] | None = None) -> dict[str, Any]:
+def type_text_in_field(text: str, field: dict[str, Any]) -> dict[str, Any]:
     """
-    Type text in an input field
+    Type text in input field
 
     Args:
         text: Text to type
-        field_element: Optional field element to click first (from find_element)
+        field: Field element dict
 
     Returns:
-        Action result dictionary
-
-    Example:
-        field = find_element("Username field")
-        result = type_text_in_field("john.doe", field)
-
-        # Or just type without clicking a field first
-        result = type_text_in_field("Hello world")
+        Dict with typing result
     """
-    # Click field first if provided
-    if field_element:
-        click_result = click_element(field_element)
-        if not click_result["success"]:
+    if "error" in field:
+        return field
+
+    try:
+        # First click on field to focus it
+        click_result = click_element(field)
+        if not click_result.get("success", False):
             return {
-                "success": False,
-                "message": f"Failed to click field: {click_result['message']}",
-                "text": text,
+                "error": f"Could not focus field: {click_result.get('message', 'Unknown error')}"
             }
 
-        # Wait for field to become active
-        time.sleep(0.2)
+        # Type text using local desktop automation
+        try:
+            from automation.desktop_control import DesktopControl
 
-    # Type text (platform-specific implementation needed)
-    from vm.connections.desktop_connection import DesktopConnection
+            desktop = DesktopControl()
+            type_result = desktop.type_text(text)
+            if not type_result.success:
+                return {"error": f"Text input failed: {type_result.message}"}
+        except ImportError:
+            return {"error": "Desktop automation not available"}
+        except Exception as e:
+            return {"error": f"Text input failed: {e}"}
 
-    conn = DesktopConnection()
-    action_result = conn.type_text(text)
+        # Wait for text to appear
+        time.sleep(0.5)
 
-    return {
-        "success": action_result.success,
-        "message": action_result.message,
-        "text": text,
-        "field_clicked": field_element is not None,
-    }
+        # Verify text was entered correctly
+        screenshot = _capture_screen()
+        if screenshot is None:
+            return {"error": "Cannot capture screen for text verification"}
+
+        # Use field bbox for verification if available
+        if "bbox" in field:
+            # TODO: Implement text input verification using extract_text_from_region
+            pass
+
+        return {
+            "action": "type_text",
+            "text": text,
+            "field": field,
+            "success": True,  # Placeholder
+            "message": f"Typed '{text}' in field",
+        }
+
+    except Exception as e:
+        return {"error": f"Text input failed: {e}"}
 
 
-def verify_action(expected_outcome: str, screenshot: np.ndarray | None = None) -> dict[str, Any]:
+def verify_action(expected: str) -> dict[str, Any]:
     """
-    Verify that an action had the expected outcome
+    Verify action outcomes
 
     Args:
-        expected_outcome: Natural language description of what should have happened
-        screenshot: Optional screenshot to verify against
+        expected: Expected outcome description
 
     Returns:
-        Verification result dictionary
-
-    Example:
-        result = verify_action("Login form should be submitted")
-        result = verify_action("Settings dialog should be open")
-        result = verify_action("Text should be entered in the field")
+        Dict with verification result
     """
+    screenshot = _capture_screen()
     if screenshot is None:
-        screenshot = take_screenshot()
+        return {"error": "Screen capture not available for verification"}
 
-    verifier = _get_verifier()
+    try:
+        # Use the clean verification system
+        result = verify_element_present(
+            screenshot, expected, confidence_threshold=_config.confidence_threshold
+        )
 
-    # Use the verifier to check if expected elements are present
-    verification_result = verifier.verify_element_present(screenshot, expected_outcome)
+        return {
+            "action": "verify",
+            "expected": expected,
+            "success": result.success,
+            "message": result.message,
+            "confidence": result.confidence,
+        }
 
-    return {
-        "success": verification_result.success,
-        "message": verification_result.message,
-        "confidence": verification_result.confidence,
-        "expected_outcome": expected_outcome,
-        "elements_found": len(verification_result.found_elements or []),
-    }
+    except Exception as e:
+        return {"error": f"Verification failed: {e}"}
 
 
-def wait_for_element(
-    description: str, max_attempts: int = 10, delay: float = 1.0
-) -> dict[str, Any] | None:
+def wait_for_element(description: str, max_attempts: int = 10) -> dict[str, Any]:
     """
-    Wait for a specific element to appear
+    Wait for element to appear
 
     Args:
         description: Element description to wait for
         max_attempts: Maximum number of attempts
-        delay: Delay between attempts in seconds
 
     Returns:
-        Element information or None if timeout
-
-    Example:
-        element = wait_for_element("Loading complete message", max_attempts=30)
+        Dict with wait result
     """
     for attempt in range(max_attempts):
         element = find_element(description)
-        if element:
-            return element
+
+        if element and "error" not in element:
+            return {
+                "action": "wait_for_element",
+                "description": description,
+                "success": True,
+                "attempts": attempt + 1,
+                "element": element,
+            }
 
         if attempt < max_attempts - 1:
-            time.sleep(delay)
-
-    return None
-
-
-def scroll_screen(direction: str = "down", pixels: int = 400) -> dict[str, Any]:
-    """
-    Scroll the screen
-
-    Args:
-        direction: "up", "down", "left", "right"
-        pixels: Number of pixels to scroll
-
-    Returns:
-        Action result dictionary
-
-    Example:
-        result = scroll_screen("down", 300)
-    """
-    from vm.connections.desktop_connection import DesktopConnection
-
-    conn = DesktopConnection()
-
-    # Convert direction to scroll delta
-    dy = 0
-    if direction == "down":
-        dy = pixels
-    elif direction == "up":
-        dy = -pixels
-
-    action_result = conn.scroll(0, dy)  # Only vertical scroll for now
+            time.sleep(1.0)
 
     return {
-        "success": action_result.success,
-        "message": action_result.message,
-        "direction": direction,
-        "pixels": pixels,
+        "action": "wait_for_element",
+        "description": description,
+        "success": False,
+        "attempts": max_attempts,
+        "message": f"Element '{description}' not found after {max_attempts} attempts",
     }
 
 
-def configure_vision_tools(
-    models_dir: str | None = None,
-    confidence_threshold: float = 0.6,
-    use_ui_focused: bool = True,
-    ocr_language: str = "en",
-) -> None:
+def scroll_screen(direction: str, pixels: int = 100) -> dict[str, Any]:
     """
-    Configure the vision tools settings
+    Scroll screen content
 
     Args:
-        models_dir: Path to models directory
-        confidence_threshold: Minimum confidence for detections
-        use_ui_focused: Whether to use UI-focused YOLO classes
-        ocr_language: Language for OCR recognition
+        direction: Scroll direction ("up", "down", "left", "right")
+        pixels: Number of pixels to scroll
 
-    Example:
-        configure_vision_tools(confidence_threshold=0.7, use_ui_focused=True)
+    Returns:
+        Dict with scroll result
     """
-    global _config, _ui_finder, _verifier
+    try:
+        # Implement scrolling using local desktop automation
+        from automation.desktop_control import DesktopControl
 
-    # Update configuration
-    if models_dir:
-        _config.models_dir = Path(models_dir)
-        _config.yolo_model_path = str(_config.models_dir / "yolov8s.onnx")
+        desktop = DesktopControl()
 
-    _config.confidence_threshold = confidence_threshold
-    _config.use_ui_focused = use_ui_focused
-    _config.ocr_language = ocr_language
+        # Get screen center for scroll position
+        screenshot = _capture_screen()
+        if screenshot is None:
+            return {"error": "Cannot capture screen for scrolling"}
 
-    # Reset instances to pick up new config
-    _ui_finder = None
-    _verifier = None
+        height, width = screenshot.shape[:2]
+        center_x, center_y = width // 2, height // 2
+
+        scroll_result = desktop.scroll(center_x, center_y, direction, max(1, pixels // 100))
+
+        return {
+            "action": "scroll",
+            "direction": direction,
+            "pixels": pixels,
+            "success": scroll_result.success,
+            "message": scroll_result.message,
+        }
+
+    except Exception as e:
+        return {"error": f"Scroll failed: {e}"}
+
+
+def take_screenshot(path: str) -> dict[str, Any]:
+    """
+    Capture screen image
+
+    Args:
+        path: Path to save screenshot
+
+    Returns:
+        Dict with screenshot result
+    """
+    screenshot = _capture_screen()
+    if screenshot is None:
+        return {"error": "Screen capture not available"}
+
+    try:
+        cv2.imwrite(path, screenshot)
+        return {
+            "action": "screenshot",
+            "path": path,
+            "success": True,
+            "message": f"Screenshot saved to {path}",
+        }
+
+    except Exception as e:
+        return {"error": f"Screenshot save failed: {e}"}
+
+
+# Export the main functions for AI agent use
+__all__ = [
+    "VisionToolsConfig",
+    "analyze_screen",
+    "click_element",
+    "configure_vision_tools",
+    "find_element",
+    "scroll_screen",
+    "take_screenshot",
+    "type_text_in_field",
+    "verify_action",
+    "wait_for_element",
+]

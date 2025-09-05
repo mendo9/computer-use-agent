@@ -13,7 +13,9 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from vm.agents import AppControllerAgent, VMNavigatorAgent, VMSession, VMTarget
+from vm.automation.app_controller import AppControllerAgent
+from vm.automation.shared_context import VMSession, VMTarget
+from vm.automation.vm_navigator import VMNavigatorAgent
 
 
 @dataclass
@@ -100,8 +102,8 @@ class VMConfig:
             connection_type=self.connection_type,
             target_app_name=self.target_app_name,
             target_button_text=self.target_button_text,
-            expected_desktop_elements=self.expected_desktop_elements,
-            expected_app_elements=self.expected_app_elements,
+            expected_desktop_elements=self.expected_desktop_elements or [],
+            expected_app_elements=self.expected_app_elements or [],
             vm_connection_timeout=self.vm_connection_timeout,
             desktop_load_timeout=self.desktop_load_timeout,
             app_launch_timeout=self.app_launch_timeout,
