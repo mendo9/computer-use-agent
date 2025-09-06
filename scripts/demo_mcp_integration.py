@@ -3,7 +3,7 @@
 Demo: Complete MCP Server Integration
 
 This script demonstrates the clean architecture with:
-1. Pure OCR functions (ocr package)
+1. Pure OCR functions (vision package)
 2. MCP server interface (agent.mcp package)
 3. End-to-end computer vision tool integration
 
@@ -17,13 +17,13 @@ import sys
 from pathlib import Path
 
 # Add src to path
-sys.path.append(str(Path(__file__).parent / "src"))
+sys.path.append(str(Path(__file__).parent.parent / "src"))
 
 import cv2
 import numpy as np
 
 from agent.mcp import create_mcp_server
-from ocr import extract_text
+from vision import extract_text
 
 
 def create_demo_image() -> np.ndarray:
@@ -173,7 +173,7 @@ async def main():
     print("\n🎉 Demo completed successfully!")
     print("\n📋 Architecture Summary:")
     print("   └── src/")
-    print("       ├── ocr/           # Pure computer vision functions")
+    print("       ├── vision/           # Pure computer vision functions")
     print("       └── agent/mcp/     # MCP server interface")
     print("\n💡 The system is ready for LLM integration via MCP protocol!")
 

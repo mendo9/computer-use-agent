@@ -10,7 +10,7 @@ Perfect for MCP servers and LLM function calling.
 
 Example usage:
     import cv2
-    from ocr import detect_ui_elements, extract_text, find_elements_by_text
+    from vision import detect_ui_elements, extract_text, find_elements_by_text
 
     image = cv2.imread("screenshot.png")
     elements = detect_ui_elements(image)

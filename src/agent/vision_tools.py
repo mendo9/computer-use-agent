@@ -23,7 +23,7 @@ from typing import Any
 import cv2
 import numpy as np
 
-from ocr import (
+from vision import (
     find_elements_by_text,
     verify_click_success,
     verify_element_present,
@@ -34,7 +34,7 @@ from ocr import (
 class VisionToolsConfig:
     """Configuration for vision tools"""
 
-    models_dir: Path = Path(__file__).parent.parent / "ocr" / "models"
+    models_dir: Path = Path(__file__).parent.parent / "vision" / "models"
     confidence_threshold: float = 0.6
     ocr_language: str = "en"
 
@@ -85,7 +85,7 @@ def analyze_screen(prompt: str) -> dict[str, Any]:
 
     try:
         # Use analyze_screen_content for complete analysis
-        from ocr import analyze_screen_content
+        from vision import analyze_screen_content
 
         analysis = analyze_screen_content(
             screenshot, prompt, confidence_threshold=_config.confidence_threshold

@@ -14,11 +14,11 @@ Structure:
 Usage:
     # Local automation
     from automation.local import DesktopControl, FormFiller
-    
+
     # Remote automation
     from automation.remote import VNCConnection, VMNavigatorAgent
     from automation.orchestrator import VMAutomation
-    
+
     # Shared types
     from automation.core import ActionResult, ConnectionResult
 """
@@ -28,6 +28,9 @@ from .core import ActionResult, ConnectionResult
 
 # Local automation
 from .local import DesktopControl, FormFiller
+
+# Orchestrator
+from .orchestrator import VMAutomation, VMConfig
 
 # Remote automation
 from .remote import (
@@ -42,9 +45,6 @@ from .remote import (
     VNCConnection,
     create_connection,
 )
-
-# Orchestrator
-from .orchestrator import VMAutomation, VMConfig
 
 __version__ = "2.0.0"
 

@@ -2,6 +2,8 @@
 
 Combines YOLO detection and PaddleOCR to provide intelligent UI element finding
 and screen analysis capabilities.
+
+Element Finding: Combines detection and OCR to locate UI elements by text
 """
 
 import math

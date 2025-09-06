@@ -22,7 +22,7 @@ import numpy as np
 
 from automation.core import ActionResult
 from automation.local.desktop_control import DesktopControl
-from ocr import find_elements_by_text
+from vision import find_elements_by_text
 
 
 class FormFiller:

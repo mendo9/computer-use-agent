@@ -43,10 +43,10 @@ cd computer-use-agent
 uv sync
 
 # Download and setup AI models (YOLO + PaddleOCR)
-uv run src/ocr/setup_models.py
+uv run src/vision/setup_models.py
 
 # Verify installation
-uv run python -c "from ocr import detect_ui_elements; print('✅ Installation complete')"
+uv run python -c "from vision import detect_ui_elements; print('✅ Installation complete')"
 ```
 
 **System Requirements:**
@@ -446,7 +446,7 @@ vnc = VNCConnection(
 
 ```
 src/
-├── ocr/                    # Unified Computer Vision System
+├── vision/                    # Unified Computer Vision System
 │   ├── detector.py         # YOLOv8s-ONNX UI element detection
 │   ├── reader.py           # PaddleOCR text extraction
 │   ├── finder.py           # Pure function UI element search and analysis
@@ -513,10 +513,10 @@ uv run python -c "from agent.service_architecture import get_service_status; pri
 **Infrastructure Testing:**
 ```bash
 # Test unified OCR functions
-uv run python -c "from ocr import detect_ui_elements, extract_text, find_elements_by_text; print('✅ Unified OCR functions')"
+uv run python -c "from vision import detect_ui_elements, extract_text, find_elements_by_text; print('✅ Unified OCR functions')"
 
 # Test verification functions
-uv run python -c "from ocr import verify_click_success, verify_element_present; print('✅ Verification functions')"
+uv run python -c "from vision import verify_click_success, verify_element_present; print('✅ Verification functions')"
 
 # Test MCP server interface
 uv run python -c "from agent.mcp import create_mcp_server, get_function_tools; print('✅ MCP server interface')"
@@ -525,7 +525,7 @@ uv run python -c "from agent.mcp import create_mcp_server, get_function_tools; p
 uv run python src/agent/examples.py
 
 # Setup models if not downloaded
-uv run python src/ocr/setup_models.py
+uv run python src/vision/setup_models.py
 ```
 
 **Multi-Agent Service Demo:**
@@ -540,7 +540,7 @@ service = OCRService()
 # Create desktop agent session
 session_id = service.create_session(
     ConnectionBackend.DESKTOP, 
-    {"models_dir": "src/ocr/models"}
+    {"models_dir": "src/vision/models"}
 )
 
 # Execute actions in session
@@ -595,7 +595,7 @@ The same computer vision and UI automation logic works seamlessly with both conn
 ```
 ├── src/
 │   ├── main.py              # Main orchestrator (consolidated entry point)
-│   ├── ocr/                 # Unified Computer Vision System
+│   ├── vision/                 # Unified Computer Vision System
 │   │   ├── detector.py      # YOLOv8s-ONNX UI element detection
 │   │   ├── reader.py        # PaddleOCR text extraction
 │   │   ├── finder.py        # Pure function UI element search
@@ -635,7 +635,7 @@ The same computer vision and UI automation logic works seamlessly with both conn
 │   │   │   ├── local/      # macOS desktop automation  
 │   │   │   └── remote/     # VM connection protocols
 │   │   ├── agent/          # AI agent interface tests
-│   │   └── ocr/            # Computer vision tests
+│   │   └── vision/            # Computer vision tests
 │   ├── integration/        # Integration test framework
 │   │   ├── automation/     # End-to-end automation tests
 │   │   ├── workflows/      # Multi-agent workflows
@@ -920,7 +920,7 @@ This testing approach ensures system reliability while providing flexibility for
 
 ```bash
 # Re-download AI models
-uv run src/ocr/setup_models.py
+uv run src/vision/setup_models.py
 ```
 
 ## 🐳 Docker Support
@@ -1003,7 +1003,7 @@ docker run --rm -it \
 |---------|---------|----------|
 | `uv run src/main.py` | Direct script execution | Development & testing |
 | `uv run src/vm/main.py` | VM-specific entry point | VM automation only |
-| `uv run src/ocr/setup_models.py` | Download AI models | Initial setup |
+| `uv run src/vision/setup_models.py` | Download AI models | Initial setup |
 | `uv run vm-automation` | Production CLI | Production deployment |
 | `uv run vm-automation --connection rdp` | Use RDP connection | Windows VMs with RDP |
 | `uv run vm-automation --connection vnc` | Use VNC connection | Any VM with VNC server |
@@ -1066,7 +1066,7 @@ COPY . .
 
 # Install dependencies and download models
 RUN uv sync --frozen
-RUN uv run src/ocr/setup_models.py
+RUN uv run src/vision/setup_models.py
 
 # Create non-root user
 RUN useradd -m -u 1000 agent
@@ -1099,13 +1099,13 @@ def custom_health_check():
     """Custom health validation"""
     try:
         # Test OCR functionality
-        from ocr import detect_ui_elements
+        from vision import detect_ui_elements
         import numpy as np
         test_image = np.zeros((100, 100, 3), dtype=np.uint8)
         detect_ui_elements(test_image)
         
         # Test model availability
-        from ocr.setup_models import verify_models
+        from vision.setup_models import verify_models
         models_status = verify_models()
         
         return {
@@ -1171,8 +1171,8 @@ uv run vm-automation --benchmark
 
 # OCR-specific benchmarking
 uv run python -c "
-from ocr.setup_models import verify_models
-from ocr import detect_ui_elements, extract_text
+from vision.setup_models import verify_models
+from vision import detect_ui_elements, extract_text
 import time
 import numpy as np
 

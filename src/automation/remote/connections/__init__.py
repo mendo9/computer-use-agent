@@ -4,7 +4,7 @@ from .desktop import DesktopConnection
 from .rdp import RDPConnection
 from .vnc import VNCConnection
 
-__all__ = ["VNCConnection", "RDPConnection", "DesktopConnection"]
+__all__ = ["DesktopConnection", "RDPConnection", "VNCConnection"]
 
 
 def create_connection(connection_type: str):

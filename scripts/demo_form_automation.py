@@ -3,7 +3,7 @@
 Demo: Form Automation with OCR + Local Desktop Control
 
 This demonstrates the complete integration:
-1. OCR (ocr) - Finds form elements by text
+1. OCR (vision) - Finds form elements by text
 2. Automation (automation) - Clicks and types on local desktop
 3. VM (vm) - For remote desktop control (when needed)
 
@@ -14,10 +14,10 @@ import sys
 from pathlib import Path
 
 # Add src to path
-sys.path.append(str(Path(__file__).parent / "src"))
+sys.path.append(str(Path(__file__).parent.parent / "src"))
 
 from automation import DesktopControl, FormFiller
-from ocr import find_elements_by_text
+from vision import find_elements_by_text
 
 
 def demo_low_level_automation():
@@ -178,9 +178,9 @@ def main():
         print("\n🎉 Demo completed successfully!")
 
         print("\n📋 Clean Architecture Summary:")
-        print("   ├── 🔍 src/ocr/          # Pure computer vision")
-        print("   ├── 🖱️  src/automation/   # Local desktop control")
-        print("   ├── 🖥️  src/vm/           # Remote desktop control")
+        print("   ├── 🔍 src/vision/          # Pure computer vision")
+        print("   ├── 🖱️ src/automation/local   # Local desktop control")
+        print("   ├── 🖥️ src/automation/remote  # Remote desktop control")
         print("   └── 🤖 src/agent/mcp/    # MCP server interface")
 
         print("\n💡 Ready for both local and remote form automation!")

@@ -3,4 +3,4 @@
 from .input_actions import InputActions
 from .screen_capture import ScreenCapture
 
-__all__ = ["ScreenCapture", "InputActions"]
+__all__ = ["InputActions", "ScreenCapture"]

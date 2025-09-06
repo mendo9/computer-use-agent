@@ -2,6 +2,8 @@
 
 This module provides verification tools that work with the clean OCR functions
 instead of the old object-oriented UIFinder approach.
+
+Visual Verification: Screenshot comparison and visual validation
 """
 
 import time

@@ -1,6 +1,8 @@
 """Pure PaddleOCR Text Extraction Functions
 
 Standalone PaddleOCR-based text recognition with no external dependencies.
+
+Text Recognition: PaddleOCR for text extraction (true OCR)
 """
 
 from dataclasses import dataclass

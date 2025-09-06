@@ -1,9 +1,10 @@
 """Test configuration and fixtures for the automation test suite."""
 
-import pytest
-from unittest.mock import Mock, MagicMock
-from pathlib import Path
 import sys
+from pathlib import Path
+from unittest.mock import MagicMock, Mock
+
+import pytest
 
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
@@ -40,9 +41,9 @@ def mock_rdp_connection():
 @pytest.fixture
 def mock_screenshot():
     """Mock screenshot data for testing."""
-    from PIL import Image
     import numpy as np
-    
+    from PIL import Image
+
     # Create a simple 100x100 RGB image
     img_array = np.zeros((100, 100, 3), dtype=np.uint8)
     img_array[:, :] = [255, 255, 255]  # White background
@@ -55,7 +56,7 @@ def mock_ocr_results():
     return [
         {"text": "Username", "bbox": [10, 10, 100, 30], "confidence": 0.95},
         {"text": "Password", "bbox": [10, 50, 100, 70], "confidence": 0.92},
-        {"text": "Login", "bbox": [10, 90, 60, 110], "confidence": 0.98}
+        {"text": "Login", "bbox": [10, 90, 60, 110], "confidence": 0.98},
     ]
 
 
@@ -64,7 +65,7 @@ def mock_yolo_results():
     """Mock YOLO detection results for testing."""
     return [
         {"class": "textbox", "bbox": [10, 10, 200, 40], "confidence": 0.89},
-        {"class": "button", "bbox": [10, 90, 80, 120], "confidence": 0.94}
+        {"class": "button", "bbox": [10, 90, 80, 120], "confidence": 0.94},
     ]
 
 
@@ -75,7 +76,7 @@ def sample_vm_config():
         "host": "192.168.1.100",
         "port": 5900,
         "password": "test_password",
-        "connection_type": "vnc"
+        "connection_type": "vnc",
     }
 
 

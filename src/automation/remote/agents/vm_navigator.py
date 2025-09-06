@@ -9,17 +9,16 @@ from typing import Any
 # Add src to path for clean OCR imports
 sys.path.append(str(Path(__file__).parent.parent.parent))
 
-from ocr import (
+# TODO: ActionVerifier needs to be updated to work with new clean OCR functions
+# from vision.verification import ActionVerifier
+from automation.remote.agents.shared_context import VMSession, VMTarget
+from vision import (
     detect_ui_elements,
     extract_text,
     find_elements_by_text,
     verify_click_success,
     verify_page_loaded,
 )
-
-# TODO: ActionVerifier needs to be updated to work with new clean OCR functions
-# from ocr.verification import ActionVerifier
-from automation.remote.agents.shared_context import VMSession, VMTarget
 
 
 class VMNavigatorTools:
@@ -32,7 +31,7 @@ class VMNavigatorTools:
 
         # Import here to avoid circular dependency
         from automation.remote.tools import InputActions, ScreenCapture
-        
+
         # Initialize real tools only
         self.screen_capture = ScreenCapture(vm_target.connection_type)
         self.InputActions = InputActions  # Store class for later instantiation
@@ -359,7 +358,7 @@ class VMNavigatorTools:
             banner_region = (0, 0, width, int(height * 0.2))
 
             # Read text from patient banner area using clean OCR
-            from ocr import extract_text_from_region
+            from vision import extract_text_from_region
 
             text_detections = extract_text_from_region(
                 screenshot, banner_region, confidence_threshold=0.5

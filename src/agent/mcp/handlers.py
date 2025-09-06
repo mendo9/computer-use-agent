@@ -18,7 +18,7 @@ from PIL import Image
 
 sys.path.append(str(Path(__file__).parent.parent))
 
-from ocr import (
+from vision import (
     analyze_screen_content,
     detect_ui_elements,
     extract_text,

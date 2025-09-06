@@ -1,6 +1,8 @@
 """Pure YOLO Detection Functions
 
 Standalone YOLO-based UI element detection with no external dependencies.
+
+UI Element Detection. Uses YOLO to detect buttons, forms, and UI components
 """
 
 import os
