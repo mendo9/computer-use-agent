@@ -196,7 +196,7 @@ def main():
         parent_dir = Path(__file__).parent.parent
         sys.path.append(str(parent_dir))
 
-        from ocr.setup_models import verify_models
+        from vision.setup_models import verify_models
 
         verification = verify_models()
         if not all(verification.values()):

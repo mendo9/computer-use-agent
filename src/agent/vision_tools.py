@@ -23,7 +23,7 @@ from typing import Any
 import cv2
 import numpy as np
 
-from ocr import (
+from vision import (
     find_elements_by_text,
     verify_click_success,
     verify_element_present,
@@ -34,7 +34,7 @@ from ocr import (
 class VisionToolsConfig:
     """Configuration for vision tools"""
 
-    models_dir: Path = Path(__file__).parent.parent / "ocr" / "models"
+    models_dir: Path = Path(__file__).parent.parent / "vision" / "models"
     confidence_threshold: float = 0.6
     ocr_language: str = "en"
 
@@ -57,7 +57,7 @@ def configure_vision_tools(confidence_threshold: float = 0.6, ocr_language: str 
 def _capture_screen() -> np.ndarray | None:
     """Capture current screen using local desktop automation"""
     try:
-        from automation.desktop_control import DesktopControl
+        from automation.local import DesktopControl
 
         desktop = DesktopControl()
         success, screenshot = desktop.capture_screen()
@@ -85,7 +85,7 @@ def analyze_screen(prompt: str) -> dict[str, Any]:
 
     try:
         # Use analyze_screen_content for complete analysis
-        from ocr import analyze_screen_content
+        from vision import analyze_screen_content
 
         analysis = analyze_screen_content(
             screenshot, prompt, confidence_threshold=_config.confidence_threshold
@@ -186,7 +186,7 @@ def click_element(element: dict[str, Any]) -> dict[str, Any]:
         # Perform click using local desktop automation
         x, y = element["center"]
         try:
-            from automation.desktop_control import DesktopControl
+            from automation.local import DesktopControl
 
             desktop = DesktopControl()
             click_result = desktop.click(x, y)
@@ -243,7 +243,7 @@ def type_text_in_field(text: str, field: dict[str, Any]) -> dict[str, Any]:
 
         # Type text using local desktop automation
         try:
-            from automation.desktop_control import DesktopControl
+            from automation.local import DesktopControl
 
             desktop = DesktopControl()
             type_result = desktop.type_text(text)
@@ -359,7 +359,7 @@ def scroll_screen(direction: str, pixels: int = 100) -> dict[str, Any]:
     """
     try:
         # Implement scrolling using local desktop automation
-        from automation.desktop_control import DesktopControl
+        from automation.local import DesktopControl
 
         desktop = DesktopControl()
 

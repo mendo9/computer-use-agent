@@ -1,1 +1,1 @@
-"""Tests module for VM automation POC"""
+"""Test suite for the computer-use-agent automation framework."""

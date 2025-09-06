@@ -16,6 +16,7 @@ build/
 
 # Coverage
 .coverage*
+coverage.xml
 htmlcov/
 
 # OS / IDE
