@@ -105,7 +105,7 @@ class TestFormFiller:
             description="text field label",
         )
 
-        with patch("vision.find_elements_by_text", return_value=[mock_element]):
+        with patch("automation.local.form_interface.find_elements_by_text", return_value=[mock_element]):
             result = form_filler.find_field_by_label("Username")
 
         assert result is not None
@@ -144,7 +144,7 @@ class TestFormFiller:
             MockOCRElement("Username", (300, 50), (250, 40, 350, 60), 0.75),
         ]
 
-        with patch("vision.find_elements_by_text", return_value=mock_elements):
+        with patch("automation.local.form_interface.find_elements_by_text", return_value=mock_elements):
             result = form_filler.find_field_by_label("Username")
 
         assert result is not None
@@ -167,7 +167,7 @@ class TestFormFiller:
             confidence=0.8,
         )
 
-        with patch("vision.find_elements_by_text", return_value=[mock_element]):
+        with patch("automation.local.form_interface.find_elements_by_text", return_value=[mock_element]):
             result = form_filler.find_input_field_near((100, 50), search_radius=100)
 
         assert result is not None

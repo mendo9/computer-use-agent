@@ -263,9 +263,12 @@ class TestRDPConnection:
 
         assert success is True
         assert np.array_equal(image, mock_image)
-        mock_subprocess.assert_called_once_with(
-            ["scrot", rdp.screenshot_path], env={"DISPLAY": ":10"}, capture_output=True
-        )
+        # Verify subprocess was called with scrot command and DISPLAY env var
+        mock_subprocess.assert_called_once()
+        call_args = mock_subprocess.call_args
+        assert call_args[0] == (["scrot", rdp.screenshot_path],)
+        assert call_args[1]["capture_output"] is True
+        assert call_args[1]["env"]["DISPLAY"] == ":10"
         mock_imread.assert_called_once_with(rdp.screenshot_path)
         mock_unlink.assert_called_once_with(rdp.screenshot_path)
 
@@ -309,9 +312,12 @@ class TestRDPConnection:
         assert "Clicked left at (100, 200)" in result.message
 
         expected_cmd = ["xdotool", "mousemove", "100", "200", "click", "1"]
-        mock_subprocess.assert_called_once_with(
-            expected_cmd, env={"DISPLAY": ":10"}, capture_output=True
-        )
+        # Verify subprocess was called with xdotool command and DISPLAY env var
+        mock_subprocess.assert_called_once()
+        call_args = mock_subprocess.call_args
+        assert call_args[0] == (expected_cmd,)
+        assert call_args[1]["capture_output"] is True
+        assert call_args[1]["env"]["DISPLAY"] == ":10"
 
     def test_click_button_mapping(self):
         """Test click button mapping."""
@@ -386,9 +392,12 @@ class TestRDPConnection:
         assert "Typed: Hello World" in result.message
 
         expected_cmd = ["xdotool", "type", "--delay", "50", "Hello World"]
-        mock_subprocess.assert_called_once_with(
-            expected_cmd, env={"DISPLAY": ":10"}, capture_output=True
-        )
+        # Verify subprocess was called with xdotool command and DISPLAY env var
+        mock_subprocess.assert_called_once()
+        call_args = mock_subprocess.call_args
+        assert call_args[0] == (expected_cmd,)
+        assert call_args[1]["capture_output"] is True
+        assert call_args[1]["env"]["DISPLAY"] == ":10"
 
     def test_type_text_not_connected(self):
         """Test text typing when not connected."""
@@ -419,9 +428,12 @@ class TestRDPConnection:
         assert "Pressed key: enter" in result.message
 
         expected_cmd = ["xdotool", "key", "Return"]
-        mock_subprocess.assert_called_once_with(
-            expected_cmd, env={"DISPLAY": ":10"}, capture_output=True
-        )
+        # Verify subprocess was called with xdotool command and DISPLAY env var
+        mock_subprocess.assert_called_once()
+        call_args = mock_subprocess.call_args
+        assert call_args[0] == (expected_cmd,)
+        assert call_args[1]["capture_output"] is True
+        assert call_args[1]["env"]["DISPLAY"] == ":10"
 
     def test_key_press_mapping(self):
         """Test key press mapping."""
