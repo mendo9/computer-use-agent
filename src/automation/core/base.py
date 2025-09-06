@@ -1,37 +1,11 @@
 """Base classes for VM connection abstraction"""
 
-import time
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
 from typing import Any
 
 import numpy as np
 
-
-@dataclass
-class ConnectionResult:
-    """Result of connection operation"""
-
-    success: bool
-    message: str
-    timestamp: float | None = None
-
-    def __post_init__(self):
-        if self.timestamp is None:
-            self.timestamp = time.time()
-
-
-@dataclass
-class ActionResult:
-    """Result of input action"""
-
-    success: bool
-    message: str
-    timestamp: float | None = None
-
-    def __post_init__(self):
-        if self.timestamp is None:
-            self.timestamp = time.time()
+from automation.core.types import ActionResult, ConnectionResult
 
 
 class VMConnection(ABC):

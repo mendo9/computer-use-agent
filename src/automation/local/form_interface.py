@@ -20,7 +20,8 @@ sys.path.append(str(Path(__file__).parent.parent))
 
 import numpy as np
 
-from automation.desktop_control import ActionResult, DesktopControl
+from automation.core import ActionResult
+from automation.local.desktop_control import DesktopControl
 from ocr import find_elements_by_text
 
 

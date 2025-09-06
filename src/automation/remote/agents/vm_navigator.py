@@ -19,9 +19,7 @@ from ocr import (
 
 # TODO: ActionVerifier needs to be updated to work with new clean OCR functions
 # from ocr.verification import ActionVerifier
-from vm.automation.shared_context import VMSession, VMTarget
-from vm.tools.input_actions import InputActions
-from vm.tools.screen_capture import ScreenCapture
+from automation.remote.agents.shared_context import VMSession, VMTarget
 
 
 class VMNavigatorTools:
@@ -32,8 +30,12 @@ class VMNavigatorTools:
         self.session = session
         self.vm_target = vm_target
 
+        # Import here to avoid circular dependency
+        from automation.remote.tools import InputActions, ScreenCapture
+        
         # Initialize real tools only
         self.screen_capture = ScreenCapture(vm_target.connection_type)
+        self.InputActions = InputActions  # Store class for later instantiation
         # InputActions will be initialized after connection is established
         self.input_actions = None
 
@@ -59,7 +61,7 @@ class VMNavigatorTools:
 
                 # Set up input actions with the same connection as screen capture
                 if self.screen_capture.connection and self.screen_capture.connection.is_connected:
-                    self.input_actions = InputActions(self.screen_capture.connection)
+                    self.input_actions = self.InputActions(self.screen_capture.connection)
 
                 return {"success": True, "message": "VM connection established"}
             else:

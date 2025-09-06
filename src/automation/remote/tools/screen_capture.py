@@ -5,7 +5,8 @@ import time
 import cv2
 import numpy as np
 
-from vm.connections import VMConnection, create_connection
+from automation.core.base import VMConnection
+from automation.remote import create_connection
 
 
 class ScreenCapture:

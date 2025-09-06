@@ -6,7 +6,8 @@ import cv2
 import numpy as np
 import vncdotool.api as vnc
 
-from vm.connections.base import ActionResult, ConnectionResult, VMConnection
+from automation.core import ActionResult, ConnectionResult
+from automation.core.base import VMConnection
 
 
 class VNCConnection(VMConnection):

@@ -11,7 +11,8 @@ import time
 import cv2
 import numpy as np
 
-from vm.connections.base import ActionResult, ConnectionResult, VMConnection
+from automation.core import ActionResult, ConnectionResult
+from automation.core.base import VMConnection
 
 
 class RDPConnection(VMConnection):

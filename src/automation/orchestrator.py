@@ -1,4 +1,4 @@
-"""Main VM automation orchestrator - coordinates both agents"""
+"""VM automation orchestrator - coordinates both agents for remote automation"""
 
 import argparse
 import asyncio
@@ -13,9 +13,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from vm.automation.app_controller import AppControllerAgent
-from vm.automation.shared_context import VMSession, VMTarget
-from vm.automation.vm_navigator import VMNavigatorAgent
+from automation.remote.agents import AppControllerAgent, VMNavigatorAgent, VMSession, VMTarget
 
 
 @dataclass

@@ -1,49 +1,68 @@
-"""Local macOS Desktop Automation
-
-Provides direct control over the local macOS desktop environment using native tools:
-- AppleScript for mouse clicks and keyboard input
-- screencapture for screenshots
-- cliclick as alternative click method (if installed)
-
-This is completely separate from VM/remote control and operates on the local machine only.
-"""
+"""Desktop connection implementation for local macOS desktop interaction"""
 
 import subprocess
-from dataclasses import dataclass
 from pathlib import Path
 
 import cv2
 import numpy as np
 
-
-@dataclass
-class ActionResult:
-    """Result of local desktop action"""
-
-    success: bool
-    message: str
+from automation.core import ActionResult, ConnectionResult
+from automation.core.base import VMConnection
 
 
-class DesktopControl:
-    """Local macOS desktop automation controller"""
+class DesktopConnection(VMConnection):
+    """Desktop connection implementation for local macOS desktop manipulation"""
 
     def __init__(self):
-        """Initialize desktop control"""
+        super().__init__()
         self.screenshot_path = Path("/tmp/desktop_screenshot.png")
-        self.is_active = True
+
+    def connect(
+        self,
+        host: str = "localhost",
+        port: int = 0,
+        username: str | None = None,
+        password: str | None = None,
+        **kwargs,
+    ) -> ConnectionResult:
+        """Connect to local desktop (always succeeds)"""
+        try:
+            # No actual connection needed for local desktop
+            self.is_connected = True
+
+            self.connection_info = {
+                "type": "desktop",
+                "host": "localhost",
+                "platform": "macOS",
+                "screenshot_path": str(self.screenshot_path),
+            }
+
+            return ConnectionResult(True, "Connected to local desktop")
+
+        except Exception as e:
+            self.is_connected = False
+            return ConnectionResult(False, f"Desktop connection failed: {e}")
+
+    def disconnect(self) -> ConnectionResult:
+        """Disconnect from desktop (cleanup only)"""
+        try:
+            self.is_connected = False
+            self.connection_info = {}
+
+            # Clean up screenshot file if it exists
+            if self.screenshot_path.exists():
+                self.screenshot_path.unlink()
+
+            return ConnectionResult(True, "Desktop disconnected")
+
+        except Exception as e:
+            return ConnectionResult(False, f"Desktop disconnect error: {e}")
 
     def capture_screen(self) -> tuple[bool, np.ndarray | None]:
-        """
-        Capture desktop screenshot using macOS screencapture
+        """Capture desktop screenshot using macOS screencapture"""
+        if not self.is_connected:
+            return False, None
 
-        Returns:
-            Tuple of (success, image_array) where image_array is BGR format for OpenCV
-
-        Example:
-            success, screenshot = desktop.capture_screen()
-            if success:
-                cv2.imshow("Desktop", screenshot)
-        """
         try:
             # Use macOS screencapture for entire screen
             cmd = ["screencapture", "-x", str(self.screenshot_path)]
@@ -69,15 +88,10 @@ class DesktopControl:
             return False, None
 
     def capture_window(self, interactive: bool = True) -> tuple[bool, np.ndarray | None]:
-        """
-        Capture specific window (interactive selection)
+        """Capture specific window (interactive selection)"""
+        if not self.is_connected:
+            return False, None
 
-        Args:
-            interactive: If True, user selects window interactively
-
-        Returns:
-            Tuple of (success, image_array)
-        """
         try:
             if interactive:
                 # Interactive window selection
@@ -109,23 +123,15 @@ class DesktopControl:
             return False, None
 
     def click(self, x: int, y: int, button: str = "left") -> ActionResult:
-        """
-        Click at coordinates using AppleScript
+        """Click at coordinates using AppleScript"""
+        if not self.is_connected:
+            return ActionResult(False, "No desktop connection")
 
-        Args:
-            x: X coordinate
-            y: Y coordinate
-            button: "left", "right", or "middle"
-
-        Returns:
-            ActionResult with success status
-
-        Example:
-            result = desktop.click(100, 200)
-            if result.success:
-                print("Click successful")
-        """
         try:
+            # Map button names to AppleScript button numbers
+            button_map = {"left": "1", "right": "2", "middle": "3"}
+            btn_num = button_map.get(button, "1")
+
             # Use AppleScript for clicking
             script = f'tell application "System Events" to click at {{{x}, {y}}}'
             if button != "left":
@@ -146,21 +152,12 @@ class DesktopControl:
             return ActionResult(False, f"Desktop click error: {e}")
 
     def click_with_cliclick(self, x: int, y: int, button: str = "left") -> ActionResult:
-        """
-        Alternative click method using cliclick (if installed)
+        """Alternative click method using cliclick (if installed)"""
+        if not self.is_connected:
+            return ActionResult(False, "No desktop connection")
 
-        Install with: brew install cliclick
-
-        Args:
-            x: X coordinate
-            y: Y coordinate
-            button: "left", "right", or "middle"
-
-        Returns:
-            ActionResult with success status
-        """
         try:
-            # Check if cliclick is available
+            # Check if cliclick is available (brew install cliclick)
             import shutil
 
             if not shutil.which("cliclick"):
@@ -184,45 +181,11 @@ class DesktopControl:
             # Fallback to AppleScript
             return self.click(x, y, button)
 
-    def double_click(self, x: int, y: int) -> ActionResult:
-        """
-        Double-click at coordinates
-
-        Args:
-            x: X coordinate
-            y: Y coordinate
-
-        Returns:
-            ActionResult with success status
-        """
-        result1 = self.click(x, y, "left")
-        if not result1.success:
-            return result1
-
-        # Small delay between clicks
-        import time
-
-        time.sleep(0.1)
-
-        result2 = self.click(x, y, "left")
-        if not result2.success:
-            return result2
-
-        return ActionResult(True, f"Double-clicked at ({x}, {y})")
-
     def type_text(self, text: str) -> ActionResult:
-        """
-        Type text using AppleScript
+        """Type text using AppleScript"""
+        if not self.is_connected:
+            return ActionResult(False, "No desktop connection")
 
-        Args:
-            text: Text to type
-
-        Returns:
-            ActionResult with success status
-
-        Example:
-            result = desktop.type_text("Hello World")
-        """
         try:
             # Escape quotes in text for AppleScript
             escaped_text = text.replace('"', '\\"').replace("'", "\\'")
@@ -242,19 +205,10 @@ class DesktopControl:
             return ActionResult(False, f"Desktop type error: {e}")
 
     def key_press(self, key: str) -> ActionResult:
-        """
-        Press key using AppleScript
+        """Press key using AppleScript"""
+        if not self.is_connected:
+            return ActionResult(False, "No desktop connection")
 
-        Args:
-            key: Key name or combination (e.g., "enter", "cmd+c", "ctrl+v")
-
-        Returns:
-            ActionResult with success status
-
-        Example:
-            desktop.key_press("enter")
-            desktop.key_press("cmd+c")  # Copy
-        """
         try:
             # Map common key names to AppleScript key codes
             key_mapping = {
@@ -288,13 +242,10 @@ class DesktopControl:
 
                 script = f'tell application "System Events" to keystroke "{target_key}" using {mod_key} down'
             else:
+                script = f'tell application "System Events" to key code (key code of "{apple_key}")'
                 # Simpler approach for single keys
                 if apple_key in ["return", "escape", "tab", "space", "delete"]:
                     script = f'tell application "System Events" to keystroke "{apple_key}"'
-                else:
-                    script = (
-                        f'tell application "System Events" to key code (key code of "{apple_key}")'
-                    )
 
             cmd = ["osascript", "-e", script]
             result = subprocess.run(cmd, check=True, capture_output=True, text=True)
@@ -309,49 +260,8 @@ class DesktopControl:
         except Exception as e:
             return ActionResult(False, f"Desktop key press error: {e}")
 
-    def scroll(self, x: int, y: int, direction: str = "up", clicks: int = 3) -> ActionResult:
-        """
-        Scroll at specific position using arrow keys
-
-        Args:
-            x: X coordinate (for positioning cursor)
-            y: Y coordinate (for positioning cursor)
-            direction: "up" or "down"
-            clicks: Number of scroll steps
-
-        Returns:
-            ActionResult with success status
-        """
-        try:
-            # First click at position to focus
-            self.click(x, y)
-
-            # Then use arrow keys to scroll
-            for _ in range(clicks):
-                if direction == "up":
-                    result = self.key_press("up")
-                else:
-                    result = self.key_press("down")
-
-                if not result.success:
-                    return result
-
-                import time
-
-                time.sleep(0.1)
-
-            return ActionResult(True, f"Scrolled {direction} {clicks} times at ({x}, {y})")
-
-        except Exception as e:
-            return ActionResult(False, f"Scroll failed: {e}")
-
     def get_desktop_info(self) -> dict:
-        """
-        Get desktop-specific information
-
-        Returns:
-            Dictionary with platform and capability information
-        """
+        """Get desktop-specific information"""
         try:
             # Get screen resolution
             cmd = ["system_profiler", "SPDisplaysDataType", "-json"]
@@ -359,25 +269,17 @@ class DesktopControl:
 
             info = {
                 "platform": "macOS",
-                "type": "local_desktop",
+                "connection_type": "desktop",
                 "screenshot_capability": True,
                 "click_capability": True,
                 "keyboard_capability": True,
-                "cliclick_available": bool(__import__("shutil").which("cliclick")),
             }
 
             if result.returncode == 0:
+                # Could parse JSON for detailed display info
                 info["system_profiler_available"] = True
 
             return info
 
         except Exception as e:
-            return {"platform": "macOS", "type": "local_desktop", "error": str(e)}
-
-    def cleanup(self):
-        """Clean up temporary files"""
-        try:
-            if self.screenshot_path.exists():
-                self.screenshot_path.unlink()
-        except Exception:
-            pass
+            return {"platform": "macOS", "connection_type": "desktop", "error": str(e)}

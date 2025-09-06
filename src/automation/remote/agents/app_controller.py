@@ -4,7 +4,7 @@ import asyncio
 import time
 from typing import Any
 
-from vm.automation.shared_context import VMSession, VMTarget
+from automation.remote.agents.shared_context import VMSession, VMTarget
 
 
 class AppControllerTools:
