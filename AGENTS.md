@@ -45,9 +45,6 @@ Add tools in `src/agent_template/tools/`:
 # Sync dev env
 uv sync --dev
 
-# Run starter agent
-uv run agent-starter
-
 # Lint / format
 uv run ruff format . && uv run ruff check .
 

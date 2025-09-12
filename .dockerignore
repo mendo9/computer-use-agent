@@ -1,10 +1,5 @@
-.venv
-__pycache__
-dist
-build
-.git
-.gitignore
-.env
-*.egg-info
-htmlcov
-.dockerignore
+* 
+
+!src
+!Dockerfile
+!pyproject.toml

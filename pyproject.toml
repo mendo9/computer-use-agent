@@ -13,8 +13,17 @@ classifiers = [
 
 # Runtime deps
 dependencies = [
+  "azure-servicebus>=7.14.2",
+  "cua-agent[all]>=0.4.27",
+  "cua-computer>=0.4.5",
+  "httpx[http2]>=0.28.1",
+  "loguru>=0.7.3",
   "openai>=1.105.0",
   "openai-agents>=0.2.11",
+  "pydantic>=2.11.7",
+  "python-dotenv>=1.1.1",
+  "tenacity>=9.1.2",
+  "websockets>=15.0.1",
 ]
 
 
@@ -48,5 +57,6 @@ dev = [
   "pytest-cov>=5.0.0",
   "ruff>=0.5.7",
   "pyright>=1.1.379",
-  "pre-commit>=3.7.1"
+  "pre-commit>=3.7.1",
+  "pytest-asyncio>=1.2.0",
 ]
