@@ -30,17 +30,16 @@ dependencies = [
 [tool.ruff]
 line-length = 100
 target-version = "py312"
-lint.select = ["E","F","I","UP","B","SIM","C4","PIE","RUF"]
-lint.ignore = ["E203","E501"]  # leave formatting to ruff formatter, cap lines via formatter
+select = ["E","F","I","UP","B","SIM","C4","PIE","RUF"]
+ignore = ["E203","E501"]  # leave formatting to ruff formatter, cap lines via formatter
 exclude = ["dist", "build", ".venv"]
+fix = true
 
 [tool.ruff.format]
 quote-style = "double"
 indent-style = "space"
 line-ending = "auto"
 skip-magic-trailing-comma = false
-
-# Dev / tooling
 
 [tool.pytest.ini_options]
 pythonpath = "."
@@ -59,4 +58,8 @@ dev = [
   "pyright>=1.1.379",
   "pre-commit>=3.7.1",
   "pytest-asyncio>=1.2.0",
+]
+local-run = [
+    "cua-computer-server>=0.1.22",
+    "cua-som>=0.1.3",
 ]
