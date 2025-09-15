@@ -81,10 +81,5 @@ class RemoteCuaComputer(AsyncComputerHandler):
     async def move(self, x: int, y: int) -> None:
         await _cmd("move_cursor", {"x": x, "y": y})
 
-    async def wait(self, ms: int = 1000) -> None:
-        import asyncio
-
-        await asyncio.sleep(ms / 1000)
-
     async def scroll(self, x: int, y: int, scroll_x: int, scroll_y: int) -> None:
         await _cmd("scroll", {"x": x, "y": y, "scroll_x": scroll_x, "scroll_y": scroll_y})

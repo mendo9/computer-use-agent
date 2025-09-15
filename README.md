@@ -24,29 +24,33 @@ uv run pyright
 
 ## Local Development Setup (macOS)
 
-For local development and testing on macOS:
+For local development and testing on macOS using Lume VM:
 
 ```bash
-# 1) Install the CUA computer server
-uv add cua-computer-server
+# 1) Install Lume CLI
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/trycua/cua/main/libs/lume/scripts/install.sh)"
 
-# 2) Start the computer server (in a separate terminal)
-uv run -m computer_server
+# 2) Run demo with automatic VM creation
+uv run -m src.tasks.lume_computer_demo
 
-# 3) Grant macOS permissions:
-# - System Settings → Privacy & Security → Accessibility → Add Terminal/Python
-# - System Settings → Privacy & Security → Screen Recording → Add Terminal/Python
-
-# 4) Set local mode and run demo
-export COMPUTER_MODE=local_host
+# 3) For TextEdit demo with VM
 uv run -m src.tasks.demo_macos_textedit
 ```
+
+**Important Network Requirements:**
+- The VM runs on a local IP (e.g., `192.168.64.x`) with computer server on port 8000
+- Your IDE/terminal must have **local networking enabled** to connect to the VM
+- **Cursor IDE**: Enable "Allow local network connections" in settings
+- **VS Code**: Ensure local network access isn't blocked by firewall
+- **Terminal**: Should work by default, but check firewall settings if connection fails
+
+The `src/backends/lume_vm.py` automatically creates and manages the VM instance using the `macos-sequoia-cua_15.4` image.
 
 ## Architecture
 
 **Backends:**
 - **Remote Mode**: Self-hosted Windows VM via HTTPS proxy with mTLS
-- **Local Mode**: macOS desktop via `cua-computer-server` 
+- **Lume VM Mode**: Virtualized macOS via Lume (Apple Virtualization.framework) 
 
 **Models:**
 - **Default**: `omniparser+openai/gpt-4o` (OmniParser + GPT-4o)

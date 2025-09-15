@@ -4,31 +4,31 @@ from unittest.mock import patch
 
 class TestConfig:
     def test_default_computer_mode(self):
-        """Test default COMPUTER_MODE is 'remote'"""
-        with patch("src.config.COMPUTER_MODE", "remote"):
+        """Test default COMPUTER_MODE is 'lume'"""
+        with patch("src.config.COMPUTER_MODE", "lume"):
             from src import config
 
-            assert config.COMPUTER_MODE == "remote"
+            assert config.COMPUTER_MODE == "lume"
 
     def test_custom_computer_mode(self):
         """Test COMPUTER_MODE can be set via environment"""
-        with patch.dict(os.environ, {"COMPUTER_MODE": "local_host"}):
+        with patch.dict(os.environ, {"COMPUTER_MODE": "remote"}):
             import importlib
 
             from src import config
 
             importlib.reload(config)
-            assert config.COMPUTER_MODE == "local_host"
+            assert config.COMPUTER_MODE == "remote"
 
     def test_computer_mode_case_insensitive(self):
         """Test COMPUTER_MODE is converted to lowercase"""
-        with patch.dict(os.environ, {"COMPUTER_MODE": "LOCAL_HOST"}):
+        with patch.dict(os.environ, {"COMPUTER_MODE": "LUME"}):
             import importlib
 
             from src import config
 
             importlib.reload(config)
-            assert config.COMPUTER_MODE == "local_host"
+            assert config.COMPUTER_MODE == "lume"
 
     def test_default_OPENAI_MODEL(self):
         """Test default OPENAI_MODEL is omniparser+openai/gpt-4o"""

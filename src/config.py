@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-COMPUTER_MODE = os.getenv("COMPUTER_MODE", "remote").lower()
+COMPUTER_MODE = os.getenv("COMPUTER_MODE", "lume").lower()
 
 OPENAI_MODEL = os.getenv("OPENAI_MODEL", "omniparser+openai/gpt-4o")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")

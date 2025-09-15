@@ -2,39 +2,24 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Start Computer Server",
-            "type": "debugpy",
-            "request": "launch",
-            "program": "${workspaceFolder}/src/tasks/local/start_computer_server.py",
-            "console": "integratedTerminal",
-            "cwd": "${workspaceFolder}",
-            "python": "${workspaceFolder}/.venv/bin/python",
-            "env": {
-                "PYTHONPATH": "${workspaceFolder}"
-            },
-            "preLaunchTask": "install-local-run-deps"
-        },
-        {
             "name": "Run TextEdit Demo",
             "type": "debugpy",
             "request": "launch",
-            "module": "src.tasks.local.demo_macos_textedit",
+            "module": "src.tasks.demo_macos_textedit",
             "console": "integratedTerminal",
             "cwd": "${workspaceFolder}",
             "python": "${workspaceFolder}/.venv/bin/python",
-            "preLaunchTask": "install-local-run-deps"
-        }
-    ],
-    "compounds": [
+            "preLaunchTask": "install-local-run-deps",
+        },
         {
-            "name": "TextEdit Demo with Server",
-            "configurations": ["Run TextEdit Demo"],
-            "presentation": {
-                "hidden": false,
-                "group": "",
-                "order": 1
-            },
-            "stopAll": true
+            "name": "Run Agent TextEdit Demo",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "src.tasks.demo_macos_agent_textedit",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "python": "${workspaceFolder}/.venv/bin/python",
+            "preLaunchTask": "install-local-run-deps",
         }
     ]
 }

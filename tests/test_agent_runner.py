@@ -18,17 +18,15 @@ class TestMakeComputer:
             assert isinstance(result, RemoteCuaComputer)
 
     @pytest.mark.asyncio
-    async def test_make_computer_local_host_mode(self):
-        """Test make_computer creates local host computer in local_host mode"""
+    async def test_make_computer_lume_mode(self):
+        """Test make_computer creates lume vm computer in lume mode"""
         mock_computer = MagicMock()
 
         with (
             patch("src.agent_runner.config") as mock_config,
-            patch(
-                "src.agent_runner.get_computer_local_host", return_value=mock_computer
-            ) as mock_get,
+            patch("src.agent_runner.get_computer_lume", return_value=mock_computer) as mock_get,
         ):
-            mock_config.COMPUTER_MODE = "local_host"
+            mock_config.COMPUTER_MODE = "lume"
 
             result = await make_computer()
 

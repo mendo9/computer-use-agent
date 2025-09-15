@@ -155,6 +155,23 @@ async def replace_function_with_computer_call(
             scroll_x = fn_args.get("scroll_x")
             scroll_y = fn_args.get("scroll_y")
 
+            # Debug: Log the keys value and type
+            if action == "keypress":
+                print(f"DEBUG: Original keys value: {keys!r}, type: {type(keys)}")
+                if keys:
+                    print(f"DEBUG: Keys content: '{keys}'")
+                else:
+                    print(f"DEBUG: Keys is empty or None: {keys}")
+
+            # Convert keys string to array format expected by agent framework
+            if action == "keypress" and keys:
+                # Split keys by + to create array format that agent expects
+                # E.g., "command+spacebar" becomes ["command", "spacebar"]
+                keys_array = keys.split("+") if isinstance(keys, str) else keys
+                print(f"DEBUG: Converted keys to array: {keys_array}")
+            else:
+                keys_array = keys
+
             x, y = _get_xy(element_id)
             start_x, start_y = _get_xy(start_element_id)
             end_x, end_y = _get_xy(end_element_id)
@@ -168,7 +185,7 @@ async def replace_function_with_computer_call(
                 "end_x": end_x,
                 "end_y": end_y,
                 "text": text,
-                "keys": keys,
+                "keys": keys_array,
                 "button": button,
                 "scroll_x": scroll_x,
                 "scroll_y": scroll_y,
@@ -211,10 +228,26 @@ async def replace_computer_call_with_function(
     if item_type == "computer_call":
         action_data = item.get("action", {})
 
+        # Debug: Log the reverse conversion process
+        if action_data.get("type") == "keypress":
+            print(f"DEBUG REVERSE: computer_call action_data: {action_data}")
+            print(f"DEBUG REVERSE: keys from action_data: {action_data.get('keys')!r}")
+
         # Extract coordinates and convert back to element IDs
         element_id = _get_element_id(action_data.get("x"), action_data.get("y"))
         start_element_id = _get_element_id(action_data.get("start_x"), action_data.get("start_y"))
         end_element_id = _get_element_id(action_data.get("end_x"), action_data.get("end_y"))
+
+        # Convert keys array back to string for API
+        keys_value = action_data.get("keys")
+        if action_data.get("type") == "keypress" and isinstance(keys_value, list):
+            # Convert array back to string: ["command", "spacebar"] -> "command+spacebar"
+            keys_string = "+".join(keys_value) if keys_value else ""
+            print(
+                f"DEBUG REVERSE: Converted keys array {keys_value} back to string: '{keys_string}'"
+            )
+        else:
+            keys_string = keys_value
 
         # Build function arguments
         fn_args = {
@@ -223,14 +256,23 @@ async def replace_computer_call_with_function(
             "start_element_id": start_element_id,
             "end_element_id": end_element_id,
             "text": action_data.get("text"),
-            "keys": action_data.get("keys"),
+            "keys": keys_string,
             "button": action_data.get("button"),
             "scroll_x": action_data.get("scroll_x"),
             "scroll_y": action_data.get("scroll_y"),
         }
 
+        # Debug: Log function args before cleanup
+        if action_data.get("type") == "keypress":
+            print(f"DEBUG REVERSE: fn_args before cleanup: {fn_args}")
+
         # Remove None values to keep the JSON clean
         fn_args = {k: v for k, v in fn_args.items() if v is not None}
+
+        # Debug: Log function args after cleanup
+        if action_data.get("type") == "keypress":
+            print(f"DEBUG REVERSE: fn_args after cleanup: {fn_args}")
+            print(f"DEBUG REVERSE: JSON args will be: {json.dumps(fn_args)}")
 
         return [
             {
@@ -293,6 +335,7 @@ class OmniparserConfig(AsyncAgentConfig):
 
         Supports OpenAI's computer use preview models.
         """
+        print("DEBUG: USING OUR CUSTOM OMNIPARSER FORK!")
         if not OMNIPARSER_AVAILABLE:
             raise ValueError(
                 "omniparser loop requires som to be installed. Install it with `pip install cua-som`."
@@ -322,11 +365,14 @@ class OmniparserConfig(AsyncAgentConfig):
                     )
 
         # handle computer calls -> function calls
+        # Create reverse mapping for coordinate to ID conversion
+        xy2id = {v: k for k, v in id2xy.items()}
+
         new_messages = []
         for message in messages:
             if not isinstance(message, dict):
                 message = message.__dict__
-            new_messages += await replace_computer_call_with_function(message, id2xy)  # type: ignore
+            new_messages += await replace_computer_call_with_function(message, xy2id)  # type: ignore
         messages = new_messages
 
         # Prepare API call kwargs
@@ -364,9 +410,52 @@ class OmniparserConfig(AsyncAgentConfig):
         # handle som function calls -> xy computer calls
         new_output = []
         for i in range(len(response.output)):  # type: ignore
-            new_output += await replace_function_with_computer_call(
-                response.output[i].model_dump(), id2xy
-            )  # type: ignore
+            original_item = response.output[i].model_dump()  # type: ignore
+
+            # Debug: Log before conversion
+            if original_item.get("name") == "computer":
+                args = json.loads(original_item.get("arguments", "{}"))
+                if args.get("action") == "keypress":
+                    print(f"DEBUG: Before conversion - keys: {args.get('keys')!r}")
+
+            converted_items = await replace_function_with_computer_call(original_item, id2xy)
+
+            # Debug: Log after conversion
+            for converted in converted_items:
+                if (
+                    converted.get("type") == "computer_call"
+                    and converted.get("action", {}).get("type") == "keypress"
+                ):
+                    print(
+                        f"DEBUG: After conversion - keys: {converted.get('action', {}).get('keys')!r}"
+                    )
+                    print(f"DEBUG: Full converted computer_call: {json.dumps(converted, indent=2)}")
+
+            # Debug: Log what we're adding to new_output
+            if any(
+                item.get("type") == "computer_call"
+                and item.get("action", {}).get("type") == "keypress"
+                for item in converted_items
+            ):
+                print(
+                    f"DEBUG: Adding to new_output - items with keypress: {len([item for item in converted_items if item.get('type') == 'computer_call' and item.get('action', {}).get('type') == 'keypress'])}"
+                )
+
+            new_output += converted_items
+
+        # Debug: Log final output structure
+        keypress_items = [
+            item
+            for item in new_output
+            if item.get("type") == "computer_call"
+            and item.get("action", {}).get("type") == "keypress"
+        ]
+        if keypress_items:
+            print(f"DEBUG: FINAL OUTPUT - Found {len(keypress_items)} keypress items")
+            for item in keypress_items:
+                print(
+                    f"DEBUG: FINAL OUTPUT - keypress keys: {item.get('action', {}).get('keys')!r}"
+                )
 
         return {"output": new_output, "usage": usage}
 
