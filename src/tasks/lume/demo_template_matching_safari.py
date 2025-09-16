@@ -4,6 +4,10 @@ from pathlib import Path
 from src.backends.lume_vm import get_computer_lume
 from src.vision.finder import find_target_center
 
+# Set up shared directory for screenshots
+shared_dir = Path(__file__).parent.parent.parent / "shared"
+shared_dir.mkdir(exist_ok=True)
+
 
 async def template_matching_safari_demo():
     """
@@ -13,10 +17,6 @@ async def template_matching_safari_demo():
     print("Starting Template Matching Safari demo...")
 
     computer = get_computer_lume()
-
-    # Set up shared directory for screenshots
-    shared_dir = Path(__file__).parent.parent.parent / "shared"
-    shared_dir.mkdir(exist_ok=True)
 
     try:
         print("Starting VM...")
@@ -42,7 +42,7 @@ async def template_matching_safari_demo():
 
             # Click on Safari
             await computer.interface.left_click(int(x), int(y))
-            await asyncio.sleep(4)  # Wait for Safari to open
+            await asyncio.sleep(2)  # Wait for Safari to open
 
             screenshot_bytes = await computer.interface.screenshot()
             with open(shared_dir / "template_step2_safari_clicked.png", "wb") as f:

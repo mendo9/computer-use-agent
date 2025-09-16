@@ -5,7 +5,7 @@
             "name": "Run TextEdit Demo",
             "type": "debugpy",
             "request": "launch",
-            "module": "src.tasks.lume.demo_template_matching_safari",
+            "module": "src.tasks.lume.demo_template_matching_google_news",
             "console": "integratedTerminal",
             "cwd": "${workspaceFolder}",
             "python": "${workspaceFolder}/.venv/bin/python",
