@@ -18,8 +18,8 @@ TEMPLATE_MAP = {
     "notes": ("notes_icon", "macos_dock"),
     # Google News templates
     "google_news_email_text": ("email_text", "google_news"),
-    "google_news_italian_dropdown": ("italian_drp_dwn", "google_news"),
-    "google_news_language_dropdown": ("language_drp_dwn", "google_news"),
+    # "google_news_italian_dropdown": ("italian_drp_dwn", "google_news"),
+    # "google_news_language_dropdown": ("language_drp_dwn", "google_news"),
     "google_news_next_button": ("next_btn", "google_news"),
     "google_news_tech_button": ("technology_btn", "google_news"),
     "google_news_virtual_reality_button": ("virtual_reality_btn", "google_news"),

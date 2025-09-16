@@ -18,6 +18,8 @@ TEXT_MAP = {
     "google_news_sign_in_button": "Sign in",
     "google_news_next_button": "Next",
     "google_news_language_dropdown": "English (United States)",
+    "google_news_language_dropdown_arrow": "▼",  # More precise dropdown arrow detection
+    "google_news_italian_dropdown": "Italiano",
 }
 
 
@@ -73,6 +75,7 @@ def find_text_by_ocr(png_bytes: bytes, query: str) -> tuple[int, int] | None:
                         x_coords = poly[:, 0]
                         y_coords = poly[:, 1]
 
+                        # Standard center calculation
                         center_x = int(np.mean(x_coords))
                         center_y = int(np.mean(y_coords))
 
