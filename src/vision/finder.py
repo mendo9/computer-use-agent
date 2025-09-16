@@ -7,18 +7,26 @@ from pathlib import Path
 import cv2
 import numpy as np
 
+from src.vision.ocr import TEXT_MAP, find_text_by_ocr
 from src.vision.template_detector import detect_ui_elements
 from src.vision.template_manager import TemplateManager, TemplateRequest, TemplateStrategy
 
 TEMPLATES_PATH = Path(__file__).parent  # src/vision/
 TEMPLATE_MAP = {
     "safari": ("safari_icon", "macos_dock"),
-    "safari_icon": ("safari_icon", "macos_dock"),
+    "safari_search": ("safari_search", "macos_dock"),
     "notes": ("notes_icon", "macos_dock"),
-    "notepad": ("notes_icon", "macos_dock"),
+    # Google News templates
+    "google_news_email_text": ("email_text", "google_news"),
+    "google_news_italian_dropdown": ("italian_drp_dwn", "google_news"),
+    "google_news_language_dropdown": ("language_drp_dwn", "google_news"),
+    "google_news_next_button": ("next_btn", "google_news"),
+    "google_news_tech_button": ("technology_btn", "google_news"),
+    "google_news_virtual_reality_button": ("virtual_reality_btn", "google_news"),
+    "google_news_sign_in_button": ("sign_in_btn", "google_news"),
 }
 # can use 0.4 if enable_multiscale is FALSE
-CONFIDENCE_THRESHOLD = 0.8
+CONFIDENCE_THRESHOLD = 0.6
 
 
 def find_target_center(png_bytes: bytes, query: str) -> tuple[int, int] | None:
@@ -35,6 +43,12 @@ def find_target_center(png_bytes: bytes, query: str) -> tuple[int, int] | None:
     coords = _find_by_template_matching(png_bytes, query)
     if coords:
         return coords
+
+    # Final fallback: OCR-based text detection
+    if query in TEXT_MAP:
+        coords = find_text_by_ocr(png_bytes, query)
+        if coords:
+            return coords
 
     return None
 

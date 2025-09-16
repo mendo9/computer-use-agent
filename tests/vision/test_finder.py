@@ -157,15 +157,43 @@ class TestFindTargetCenter:
         assert result == (100, 200)
         mock_template_matching.assert_called_once_with(b"fake_png", "safari")
 
+    @patch("src.vision.finder.find_text_by_ocr")
     @patch("src.vision.finder._find_by_template_matching")
-    def test_template_matching_fails(self, mock_template_matching):
-        """Test when template matching fails."""
+    def test_template_matching_fails_ocr_fallback(self, mock_template_matching, mock_ocr):
+        """Test when template matching fails but OCR succeeds."""
+        mock_template_matching.return_value = None
+        mock_ocr.return_value = (150, 200)
+
+        result = find_target_center(b"fake_png", "google_news_tech_button")
+
+        assert result == (150, 200)
+        mock_template_matching.assert_called_once_with(b"fake_png", "google_news_tech_button")
+        mock_ocr.assert_called_once_with(b"fake_png", "google_news_tech_button")
+
+    @patch("src.vision.finder.find_text_by_ocr")
+    @patch("src.vision.finder._find_by_template_matching")
+    def test_template_matching_fails_no_ocr_mapping(self, mock_template_matching, mock_ocr):
+        """Test when template matching fails and no OCR mapping exists."""
         mock_template_matching.return_value = None
 
         result = find_target_center(b"fake_png", "nonexistent")
 
         assert result is None
         mock_template_matching.assert_called_once_with(b"fake_png", "nonexistent")
+        mock_ocr.assert_not_called()
+
+    @patch("src.vision.finder.find_text_by_ocr")
+    @patch("src.vision.finder._find_by_template_matching")
+    def test_template_matching_fails_ocr_fails(self, mock_template_matching, mock_ocr):
+        """Test when both template matching and OCR fail."""
+        mock_template_matching.return_value = None
+        mock_ocr.return_value = None
+
+        result = find_target_center(b"fake_png", "google_news_tech_button")
+
+        assert result is None
+        mock_template_matching.assert_called_once_with(b"fake_png", "google_news_tech_button")
+        mock_ocr.assert_called_once_with(b"fake_png", "google_news_tech_button")
 
 
 class TestConstants:
@@ -183,6 +211,22 @@ class TestConstants:
         assert "safari" in TEMPLATE_MAP
         assert isinstance(TEMPLATE_MAP["safari"], tuple)
         assert len(TEMPLATE_MAP["safari"]) == 2
+
+    def test_google_news_template_mappings(self):
+        """Test Google News template mappings are present."""
+        google_news_mappings = {
+            "google_news_email_text": ("email_text", "google_news"),
+            "google_news_italian_dropdown": ("italian_drp_dwn", "google_news"),
+            "google_news_language_dropdown": ("language_drp_dwn", "google_news"),
+            "google_news_next_button": ("next_btn", "google_news"),
+            "google_news_tech_button": ("technology_btn", "google_news"),
+            "google_news_virtual_reality_button": ("virtual_reality_btn", "google_news"),
+            "google_news_sign_in_button": ("sign_in_btn", "google_news"),
+        }
+
+        for query, expected_mapping in google_news_mappings.items():
+            assert query in TEMPLATE_MAP
+            assert TEMPLATE_MAP[query] == expected_mapping
 
     def test_confidence_threshold(self):
         """Test CONFIDENCE_THRESHOLD is reasonable."""
