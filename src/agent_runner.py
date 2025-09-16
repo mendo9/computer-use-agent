@@ -4,8 +4,7 @@ import logging
 from agent import ComputerAgent
 from loguru import logger
 
-# Keep omniparser_fork import for registration
-from src import config, omniparser_fork  # noqa: F401
+from src import config
 from src.backends.lume_vm import get_computer_lume
 from src.backends.remote_cua_server import RemoteCuaComputer
 

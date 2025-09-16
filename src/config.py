@@ -4,9 +4,12 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+# Keep omniparser_fork import for registration
+from src.vision import omniparser_fork  # noqa: F401, E402
+
 COMPUTER_MODE = os.getenv("COMPUTER_MODE", "lume").lower()
 
-OPENAI_MODEL = os.getenv("OPENAI_MODEL", "omniparser+openai/gpt-4o")
+OPENAI_MODEL = os.getenv("OPENAI_MODEL", "openai/gpt-4o")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 
 # Remote (self-hosted VM)

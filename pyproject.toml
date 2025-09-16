@@ -24,6 +24,10 @@ dependencies = [
   "python-dotenv>=1.1.1",
   "tenacity>=9.1.2",
   "websockets>=15.0.1",
+  "opencv-python>=4.11.0.86",
+  "paddleocr[all]>=3.2.0",
+  "paddlepaddle>=3.2.0",
+  "pillow>=11.3.0",
 ]
 
 
@@ -58,8 +62,4 @@ dev = [
   "pyright>=1.1.379",
   "pre-commit>=3.7.1",
   "pytest-asyncio>=1.2.0",
-]
-local-run = [
-    "cua-computer-server>=0.1.22",
-    "cua-som>=0.1.3",
 ]
