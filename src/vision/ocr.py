@@ -17,6 +17,7 @@ TEXT_MAP = {
     "google_news_virtual_reality_button": "Virtual Reality",
     "google_news_sign_in_button": "Sign in",
     "google_news_next_button": "Next",
+    "google_news_language_dropdown": "English (United States)",
 }
 
 
@@ -56,18 +57,14 @@ def find_text_by_ocr(png_bytes: bytes, query: str) -> tuple[int, int] | None:
         # Get the target text to find
         target_text = TEXT_MAP[query].lower()
 
-        # Parse the new PaddleOCR format
+        # Parse the PaddleOCR format (works with both dict and object formats)
         for result in ocr_results:
-            if (
-                hasattr(result, "rec_texts")
-                and hasattr(result, "rec_scores")
-                and hasattr(result, "rec_polys")
-            ):
-                # Extract text, scores, and bounding boxes
-                texts = result.rec_texts
-                scores = result.rec_scores
-                polys = result.rec_polys
+            # Handle both dictionary and object attribute access
+            texts = getattr(result, "rec_texts", None) or result.get("rec_texts", [])
+            scores = getattr(result, "rec_scores", None) or result.get("rec_scores", [])
+            polys = getattr(result, "rec_polys", None) or result.get("rec_polys", [])
 
+            if texts and scores and polys:
                 for text, score, poly in zip(texts, scores, polys, strict=False):
                     # Check if detected text matches target (case insensitive, partial match)
                     if score > 0.7 and _text_similarity(text.lower(), target_text):

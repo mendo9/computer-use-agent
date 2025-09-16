@@ -44,7 +44,7 @@ def find_target_center(png_bytes: bytes, query: str) -> tuple[int, int] | None:
     if coords:
         return coords
 
-    # Final fallback: OCR-based text detection
+    # If OCR-based text detection
     if query in TEXT_MAP:
         coords = find_text_by_ocr(png_bytes, query)
         if coords:
