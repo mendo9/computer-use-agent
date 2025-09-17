@@ -1,0 +1,23 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Run TextEdit Demo",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "src.tasks.lume.demo_template_matching_google_news",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "python": "${workspaceFolder}/.venv/bin/python",
+        },
+        {
+            "name": "Run Agent TextEdit Demo",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "src.tasks.demo_macos_agent_textedit",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "python": "${workspaceFolder}/.venv/bin/python",
+        }
+    ]
+}
