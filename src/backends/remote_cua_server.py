@@ -33,13 +33,20 @@ async def _cmd(command: str, params: dict | None = None):
         raise RuntimeError("VM_PROXY_URL is required for REMOTE mode")
     params = params or {}
     async with _client() as c:
+        # Computer-server expects the exact format: {"command": "cmd_name", "params": {...}}
         r = await c.post(
             f"{VM_PROXY_URL}/cmd", headers=_headers(), json={"command": command, "params": params}
         )
         r.raise_for_status()
         ct = r.headers.get("content-type", "")
         if ct.startswith("application/json"):
-            return await r.json()
+            result = await r.json()
+            # Computer-server returns streaming format, get the last successful result
+            if isinstance(result, dict) and "content" in result:
+                return result
+            elif isinstance(result, dict) and "error" in result:
+                raise RuntimeError(f"Computer-server error: {result['error']}")
+            return result
         # fallback: assume bytes (e.g., screenshot)
         return {"image": r.content}
 
@@ -50,7 +57,9 @@ class RemoteCuaComputer(AsyncComputerHandler):
 
     async def get_dimensions(self) -> tuple[int, int]:
         res = await _cmd("get_screen_size", {})
-        return int(res["width"]), int(res["height"])
+        # Computer-server returns screen size in 'content' field
+        content = res.get("content", res)
+        return int(content["width"]), int(content["height"])
 
     async def get_current_url(self) -> str:
         res = await _cmd("get_current_url", {})
@@ -58,7 +67,8 @@ class RemoteCuaComputer(AsyncComputerHandler):
 
     async def screenshot(self) -> str:
         res = await _cmd("screenshot", {})
-        b64 = res.get("image_b64")
+        # Computer-server returns base64 image in 'content' field
+        b64 = res.get("content")
         if not b64 and (blob := res.get("image")):
             b64 = base64.b64encode(blob if isinstance(blob, bytes) else bytes(blob)).decode()
         return f"data:image/png;base64,{b64}"

@@ -51,6 +51,115 @@ uv run -m src.tasks.demo_template_matching_safari
 
 The `src/backends/lume_vm.py` automatically creates and manages the VM instance using the `macos-sequoia-cua-sparse:15.4` image.
 
+## Remote Windows VM Setup
+
+For production deployments using remote Windows VMs:
+
+### Windows VM Setup (Run on your Windows VM)
+
+**Prerequisites:**
+- Windows 10/11 or Windows Server 2019+
+- Python 3.8+ installed and added to PATH
+- Network connectivity to your host computer
+
+**1. Download PowerShell Scripts:**
+Copy the `scripts/` folder to your Windows VM with these files:
+- `scripts/on_startup.ps1` - Installs and starts CUA computer-server
+- `scripts/run_computer_server.ps1` - Simple server runner with configuration
+
+**2. Install and Start Computer Server:**
+```powershell
+# Run as Administrator (recommended)
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+
+# Install and start the server
+.\scripts\on_startup.ps1
+
+# Or run server directly with custom settings
+.\scripts\run_computer_server.ps1 -Host "0.0.0.0" -Port 8000 -LogLevel "info"
+```
+
+**3. Verify Server is Running:**
+The computer-server will start on `http://0.0.0.0:8000` and display:
+```
+Starting computer-server on 0.0.0.0:8000...
+Server will be accessible at: http://0.0.0.0:8000
+Press Ctrl+C to stop the server
+```
+
+**4. Setup Auto-Start on Windows Boot (Recommended):**
+
+To automatically start the computer-server when Windows boots:
+
+**Using Task Scheduler**
+```powershell
+# Open Task Scheduler as Administrator
+taskschd.msc
+
+# Or create via command line:
+$ScriptPath = "C:\path\to\your\scripts\on_startup.ps1"
+$TaskName = "CUA-Computer-Server"
+
+schtasks /create /tn "$TaskName" /tr "powershell.exe -ExecutionPolicy Bypass -File `"$ScriptPath`"" /sc onstart /ru SYSTEM /rl HIGHEST
+```
+
+**Verify Auto-Start:**
+- Reboot your Windows VM
+- Check that the computer-server starts automatically
+- Verify it's accessible at `http://VM_IP:8000`
+
+### Host Computer Setup
+
+**1. Configure Environment Variables:**
+```bash
+# Set in your .env file
+COMPUTER_MODE=remote
+VM_PROXY_URL=http://YOUR_WINDOWS_VM_IP:8000
+# Optional: Add API key or mTLS certificates for secure connections
+PROXY_API_KEY=your-secret-key
+```
+
+**2. Test Connection:**
+```bash
+# Run a simple test
+uv run -m src.tasks.debug_remote_connection
+```
+
+### Architecture Overview
+
+**Direct Connection Mode:**
+```
+Host Computer                    Windows VM
+├── remote_cua_server.py   ────► ├── cua-computer-server (port 8000)
+├── HTTP/HTTPS requests         ├── Windows automation (pyautogui, win32api)
+└── .env configuration          └── Native Windows operations
+```
+
+**Security Options:**
+- **HTTP**: Simple setup for internal networks
+- **HTTPS**: Add SSL certificates to computer-server
+- **mTLS**: Mutual TLS authentication (configure in .env)
+- **API Key**: Add `PROXY_API_KEY` for token-based auth
+
+### Troubleshooting
+
+**Windows VM Issues:**
+- Ensure Python is in PATH: `python --version`
+- Check firewall allows port 8000: `netstat -an | findstr :8000`
+- Run PowerShell as Administrator if permission errors occur
+- Verify computer-server installation: `pip list | findstr cua-computer-server`
+
+**Connection Issues:**
+- Test VM connectivity: `curl http://YOUR_VM_IP:8000/version`
+- Check network routing between host and VM
+- Verify VM_PROXY_URL in .env matches VM's actual IP
+- Ensure no proxy or VPN interfering with connection
+
+**Performance Tips:**
+- Use dedicated network for VM communication
+- Consider VM placement close to processing workloads
+- Monitor VM resource usage during automation tasks
+
 ## Architecture
 
 **Backends:**

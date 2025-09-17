@@ -47,33 +47,33 @@ async def template_matching_google_news_demo():
         await computer.interface.press_key("return")
         await asyncio.sleep(5)  # Wait for page load
 
-        # print("Step 5: Click on google_news_tech_button...")
-        # screenshot_bytes = await computer.interface.screenshot()
-        # coords = find_target_center(screenshot_bytes, "google_news_tech_button")
-        # if coords:
-        #     x, y = coords
-        #     print(
-        #         f"✅ Template matching found google_news_tech_button at pixel coordinates: ({x}, {y})"
-        #     )
-        #     await computer.interface.left_click(int(x), int(y))
-        #     await asyncio.sleep(5)
-        # else:
-        #     print("❌ Template matching couldn't find google_news_tech_button icon")
-        #     return
+        print("Step 5: Click on google_news_tech_button...")
+        screenshot_bytes = await computer.interface.screenshot()
+        coords = find_target_center(screenshot_bytes, "google_news_tech_button")
+        if coords:
+            x, y = coords
+            print(
+                f"✅ Template matching found google_news_tech_button at pixel coordinates: ({x}, {y})"
+            )
+            await computer.interface.left_click(int(x), int(y))
+            await asyncio.sleep(5)
+        else:
+            print("❌ Template matching couldn't find google_news_tech_button icon")
+            return
 
-        # print("Step 6: Click on google_news_virtual_reality_button...")
-        # screenshot_bytes = await computer.interface.screenshot()
-        # coords = find_target_center(screenshot_bytes, "google_news_virtual_reality_button")
-        # if coords:
-        #     x, y = coords
-        #     print(
-        #         f"✅ Template matching found google_news_virtual_reality_button at pixel coordinates: ({x}, {y})"
-        #     )
-        #     await computer.interface.left_click(int(x), int(y))
-        #     await asyncio.sleep(5)
-        # else:
-        #     print("❌ Template matching couldn't find google_news_virtual_reality_button icon")
-        #     return
+        print("Step 6: Click on google_news_virtual_reality_button...")
+        screenshot_bytes = await computer.interface.screenshot()
+        coords = find_target_center(screenshot_bytes, "google_news_virtual_reality_button")
+        if coords:
+            x, y = coords
+            print(
+                f"✅ Template matching found google_news_virtual_reality_button at pixel coordinates: ({x}, {y})"
+            )
+            await computer.interface.left_click(int(x), int(y))
+            await asyncio.sleep(5)
+        else:
+            print("❌ Template matching couldn't find google_news_virtual_reality_button icon")
+            return
 
         print("Step 7: Click on google_news_sign_in_button...")
         screenshot_bytes = await computer.interface.screenshot()
