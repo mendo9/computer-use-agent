@@ -115,8 +115,6 @@ schtasks /create /tn "$TaskName" /tr "powershell.exe -ExecutionPolicy Bypass -Fi
 # Set in your .env file
 COMPUTER_MODE=remote
 VM_PROXY_URL=http://YOUR_WINDOWS_VM_IP:8000
-# Optional: Add API key or mTLS certificates for secure connections
-PROXY_API_KEY=your-secret-key
 ```
 
 **2. Test Connection:**
@@ -137,9 +135,7 @@ Host Computer                    Windows VM
 
 **Security Options:**
 - **HTTP**: Simple setup for internal networks
-- **HTTPS**: Add SSL certificates to computer-server
-- **mTLS**: Mutual TLS authentication (configure in .env)
-- **API Key**: Add `PROXY_API_KEY` for token-based auth
+- **HTTPS**: Add SSL certificates to computer-server if needed
 
 ### Troubleshooting
 

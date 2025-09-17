@@ -1,5 +1,6 @@
-import base64
+import json
 import os
+import re
 from typing import Literal
 
 import httpx
@@ -7,48 +8,38 @@ from agent.computers import AsyncComputerHandler
 from tenacity import retry, stop_after_attempt, wait_exponential
 
 VM_PROXY_URL = os.getenv("VM_PROXY_URL", "").rstrip("/")
-PROXY_API_KEY = os.getenv("PROXY_API_KEY", "")
-CLIENT_CERT_PATH = os.getenv("CLIENT_CERT_PATH") or None
-CLIENT_KEY_PATH = os.getenv("CLIENT_KEY_PATH") or None
-CA_CERT_PATH = os.getenv("CA_CERT_PATH") or True
-
-
-def _headers():
-    h = {"Content-Type": "application/json"}
-    if PROXY_API_KEY:
-        h["X-API-Key"] = PROXY_API_KEY
-    return h
 
 
 def _client():
-    kwargs = {"timeout": 30.0, "verify": CA_CERT_PATH}
-    if CLIENT_CERT_PATH and CLIENT_KEY_PATH:
-        kwargs["cert"] = (CLIENT_CERT_PATH, CLIENT_KEY_PATH)
-    return httpx.AsyncClient(**kwargs)
+    return httpx.AsyncClient(timeout=30.0)
 
 
 @retry(stop=stop_after_attempt(3), wait=wait_exponential(min=0.5, max=4))
 async def _cmd(command: str, params: dict | None = None):
     if not VM_PROXY_URL:
         raise RuntimeError("VM_PROXY_URL is required for REMOTE mode")
-    params = params or {}
+
     async with _client() as c:
-        # Computer-server expects the exact format: {"command": "cmd_name", "params": {...}}
-        r = await c.post(
-            f"{VM_PROXY_URL}/cmd", headers=_headers(), json={"command": command, "params": params}
-        )
+        r = await c.post(f"{VM_PROXY_URL}/cmd", json={"command": command, "params": params or {}})
         r.raise_for_status()
-        ct = r.headers.get("content-type", "")
-        if ct.startswith("application/json"):
-            result = await r.json()
-            # Computer-server returns streaming format, get the last successful result
-            if isinstance(result, dict) and "content" in result:
-                return result
-            elif isinstance(result, dict) and "error" in result:
-                raise RuntimeError(f"Computer-server error: {result['error']}")
+
+        # Computer-server returns SSE format: "data: {json}\n\n"
+        content = await r.aread()
+        if isinstance(content, bytes):
+            content = content.decode("utf-8")
+
+        # Extract the last JSON data from SSE format
+        data_lines = re.findall(r"data: (.+?)(?:\n\n|\n$)", content, re.DOTALL)
+        if not data_lines:
+            raise RuntimeError(f"No data found in response: {content}")
+
+        try:
+            result = json.loads(data_lines[-1].strip())
+            if isinstance(result, dict) and (result.get("success") is False or "error" in result):
+                raise RuntimeError(f"Computer-server error: {result.get('error', 'Unknown error')}")
             return result
-        # fallback: assume bytes (e.g., screenshot)
-        return {"image": r.content}
+        except json.JSONDecodeError as e:
+            raise RuntimeError(f"Failed to parse response: {data_lines[-1]}") from e
 
 
 class RemoteCuaComputer(AsyncComputerHandler):
@@ -57,21 +48,26 @@ class RemoteCuaComputer(AsyncComputerHandler):
 
     async def get_dimensions(self) -> tuple[int, int]:
         res = await _cmd("get_screen_size", {})
-        # Computer-server returns screen size in 'content' field
-        content = res.get("content", res)
-        return int(content["width"]), int(content["height"])
+        if "size" in res:
+            return int(res["size"].get("width")), int(res["size"].get("height"))
+        else:
+            raise RuntimeError("No size data found in response")
 
-    async def get_current_url(self) -> str:
-        res = await _cmd("get_current_url", {})
-        return str(res["url"])
+    async def get_cursor_position(self) -> tuple[int, int]:
+        """Get the current position of the mouse cursor"""
+        res = await _cmd("get_cursor_position", {})
+        if "position" in res:
+            return int(res["position"].get("x")), int(res["position"].get("y"))
+        else:
+            raise RuntimeError("No cursor position data found in response")
 
     async def screenshot(self) -> str:
         res = await _cmd("screenshot", {})
-        # Computer-server returns base64 image in 'content' field
-        b64 = res.get("content")
-        if not b64 and (blob := res.get("image")):
-            b64 = base64.b64encode(blob if isinstance(blob, bytes) else bytes(blob)).decode()
-        return f"data:image/png;base64,{b64}"
+        # Computer-server returns base64 string in image_data field
+        if "image_data" in res:
+            return res["image_data"]
+        else:
+            raise RuntimeError("No image data found in response")
 
     async def click(self, x: int, y: int, button: str = "left") -> None:
         cmd = {"left": "left_click", "right": "right_click", "middle": "middle_click"}.get(
