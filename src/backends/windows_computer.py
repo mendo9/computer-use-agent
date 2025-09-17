@@ -1,3 +1,4 @@
+import base64
 import json
 import os
 import re
@@ -5,6 +6,7 @@ from typing import Literal
 
 import httpx
 from agent.computers import AsyncComputerHandler
+from loguru import logger
 from tenacity import retry, stop_after_attempt, wait_exponential
 
 VM_PROXY_URL = os.getenv("VM_PROXY_URL", "").rstrip("/")
@@ -42,7 +44,9 @@ async def _cmd(command: str, params: dict | None = None):
             raise RuntimeError(f"Failed to parse response: {data_lines[-1]}") from e
 
 
-class RemoteCuaComputer(AsyncComputerHandler):
+class WindowsComputerInterface(AsyncComputerHandler):
+    """Interface for controlling a remote Windows computer via computer-server."""
+
     async def get_environment(self) -> Literal["windows", "mac", "linux", "browser"]:
         return "windows"
 
@@ -89,3 +93,58 @@ class RemoteCuaComputer(AsyncComputerHandler):
 
     async def scroll(self, x: int, y: int, scroll_x: int, scroll_y: int) -> None:
         await _cmd("scroll", {"x": x, "y": y, "scroll_x": scroll_x, "scroll_y": scroll_y})
+
+
+class WindowsComputer:
+    """Computer-like wrapper for remote Windows computer, matching the Lume VM pattern."""
+
+    def __init__(self, vm_proxy_url: str = None):
+        self.vm_proxy_url = vm_proxy_url or VM_PROXY_URL
+        if not self.vm_proxy_url:
+            raise ValueError("VM_PROXY_URL must be provided either as parameter or environment variable")
+
+        # Set the global URL for the _cmd function
+        global VM_PROXY_URL
+        VM_PROXY_URL = self.vm_proxy_url
+
+        self.interface = WindowsComputerInterface()
+
+    async def screenshot_bytes(self) -> bytes:
+        """Take a screenshot and return as bytes for image processing."""
+        # Get base64 string from interface
+        b64_string = await self.interface.screenshot()
+        # Decode to bytes
+        return base64.b64decode(b64_string)
+
+    async def __aenter__(self):
+        """Async context manager entry - test connection."""
+        try:
+            # Test connection by getting screen size
+            await self.interface.get_dimensions()
+            logger.info(f"Connected to Windows computer-server at {self.vm_proxy_url}")
+            return self
+        except Exception as e:
+            raise RuntimeError(f"Failed to connect to Windows computer-server at {self.vm_proxy_url}: {e}")
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        """Async context manager exit - cleanup if needed."""
+        logger.info("Disconnected from Windows computer-server")
+
+
+def get_computer_windows() -> WindowsComputer:
+    """
+    Get a WindowsComputer instance connected to a remote Windows VM.
+
+    Expects a computer-server to be running on the Windows VM.
+    Configure VM_PROXY_URL environment variable to point to the Windows VM.
+    """
+    vm_url = os.getenv("VM_PROXY_URL")
+    if not vm_url:
+        raise RuntimeError(
+            "VM_PROXY_URL environment variable is required. "
+            "Set it to http://YOUR_WINDOWS_VM_IP:8000"
+        )
+
+    computer = WindowsComputer(vm_url)
+    logger.info(f"Created Windows computer instance for {vm_url}")
+    return computer

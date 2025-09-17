@@ -128,7 +128,7 @@ uv run -m src.tasks.debug_remote_connection
 **Direct Connection Mode:**
 ```
 Host Computer                    Windows VM
-├── remote_cua_server.py   ────► ├── cua-computer-server (port 8000)
+├── windows_computer.py    ────► ├── cua-computer-server (port 8000)
 ├── HTTP/HTTPS requests         ├── Windows automation (pyautogui, win32api)
 └── .env configuration          └── Native Windows operations
 ```
