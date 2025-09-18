@@ -6,13 +6,13 @@ from loguru import logger
 
 from src import config
 from src.backends.lume_vm import get_computer_lume
-from src.backends.remote_cua_server import RemoteCuaComputer
+from src.backends.windows_computer import get_computer_windows
 
 
 async def make_computer():
     mode = config.COMPUTER_MODE
     if mode == "remote":
-        return RemoteCuaComputer()
+        return get_computer_windows()
     elif mode == "lume":
         return get_computer_lume()
     raise RuntimeError(f"Unsupported COMPUTER_MODE={mode}")

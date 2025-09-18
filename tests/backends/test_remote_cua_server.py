@@ -179,17 +179,17 @@ class TestRemoteCuaServerHelpers:
 
     @pytest.mark.asyncio
     async def test_cmd_missing_vm_proxy_url(self):
-        """Test _cmd raises error when VM_PROXY_URL is missing"""
-        # Remove retry decorator and patch VM_PROXY_URL
+        """Test _cmd raises error when VM_IP_ADDRESS is missing"""
+        # Remove retry decorator and patch VM_IP_ADDRESS
         with (
-            patch("src.backends.remote_cua_server.VM_PROXY_URL", ""),
+            patch("src.backends.remote_cua_server.VM_IP_ADDRESS", ""),
             patch("src.backends.remote_cua_server._cmd.retry.stop"),
         ):
             from src.backends.remote_cua_server import _cmd
 
             # Call the original function without retry
             original_func = _cmd.__wrapped__
-            with pytest.raises(RuntimeError, match="VM_PROXY_URL is required for REMOTE mode"):
+            with pytest.raises(RuntimeError, match="VM_IP_ADDRESS is required for REMOTE mode"):
                 await original_func("test_command")
 
     @pytest.mark.asyncio
@@ -204,7 +204,7 @@ class TestRemoteCuaServerHelpers:
         mock_client.__aenter__.return_value.post.return_value = mock_response
 
         with (
-            patch("src.backends.remote_cua_server.VM_PROXY_URL", "https://test.com"),
+            patch("src.backends.remote_cua_server.VM_IP_ADDRESS", "https://test.com"),
             patch("src.backends.remote_cua_server._client", return_value=mock_client),
         ):
             from src.backends.remote_cua_server import _cmd
@@ -227,7 +227,7 @@ class TestRemoteCuaServerHelpers:
         mock_client.__aenter__.return_value.post.return_value = mock_response
 
         with (
-            patch("src.backends.remote_cua_server.VM_PROXY_URL", "https://test.com"),
+            patch("src.backends.remote_cua_server.VM_IP_ADDRESS", "https://test.com"),
             patch("src.backends.remote_cua_server._client", return_value=mock_client),
         ):
             from src.backends.remote_cua_server import _cmd

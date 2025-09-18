@@ -13,7 +13,7 @@ OPENAI_MODEL = os.getenv("OPENAI_MODEL", "openai/gpt-4o")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 
 # Remote (self-hosted VM)
-VM_PROXY_URL = os.getenv("VM_PROXY_URL", "").rstrip("/")
+VM_IP_ADDRESS = os.getenv("VM_IP_ADDRESS", "").rstrip("/")
 PROXY_API_KEY = os.getenv("PROXY_API_KEY", "")
 CLIENT_CERT_PATH = os.getenv("CLIENT_CERT_PATH", "")
 CLIENT_KEY_PATH = os.getenv("CLIENT_KEY_PATH", "")
@@ -22,9 +22,6 @@ CA_CERT_PATH = os.getenv("CA_CERT_PATH", "")
 # Azure Service Bus
 SB_CONNECTION_STRING = os.getenv("SB_CONNECTION_STRING", "")
 SB_QUEUE_NAME = os.getenv("SB_QUEUE_NAME", "")
-
-# Vision
-USE_LOCAL_VISION = os.getenv("USE_LOCAL_VISION", "false").lower() == "true"
 
 TRAJECTORY_DIR = os.getenv("TRAJECTORY_DIR", "./trajectories")
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")

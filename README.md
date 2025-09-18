@@ -114,9 +114,7 @@ schtasks /create /tn "$TaskName" /tr "powershell.exe -ExecutionPolicy Bypass -Fi
 ```bash
 # Set in your .env file
 COMPUTER_MODE=remote
-VM_PROXY_URL=http://YOUR_WINDOWS_VM_IP:8000
-# Optional: Add API key or mTLS certificates for secure connections
-PROXY_API_KEY=your-secret-key
+VM_IP_ADDRESS=http://YOUR_WINDOWS_VM_IP:8000
 ```
 
 **2. Test Connection:**
@@ -130,16 +128,14 @@ uv run -m src.tasks.debug_remote_connection
 **Direct Connection Mode:**
 ```
 Host Computer                    Windows VM
-├── remote_cua_server.py   ────► ├── cua-computer-server (port 8000)
+├── windows_computer.py    ────► ├── cua-computer-server (port 8000)
 ├── HTTP/HTTPS requests         ├── Windows automation (pyautogui, win32api)
 └── .env configuration          └── Native Windows operations
 ```
 
 **Security Options:**
 - **HTTP**: Simple setup for internal networks
-- **HTTPS**: Add SSL certificates to computer-server
-- **mTLS**: Mutual TLS authentication (configure in .env)
-- **API Key**: Add `PROXY_API_KEY` for token-based auth
+- **HTTPS**: Add SSL certificates to computer-server if needed
 
 ### Troubleshooting
 
@@ -152,7 +148,7 @@ Host Computer                    Windows VM
 **Connection Issues:**
 - Test VM connectivity: `curl http://YOUR_VM_IP:8000/version`
 - Check network routing between host and VM
-- Verify VM_PROXY_URL in .env matches VM's actual IP
+- Verify VM_IP_ADDRESS in .env matches VM's actual IP
 - Ensure no proxy or VPN interfering with connection
 
 **Performance Tips:**
@@ -215,5 +211,33 @@ if coords:
     x, y = coords
     # Click at coordinates
 ```
+
+## Element Detection Debugging
+
+Two scripts are provided to visualize detected UI elements with their coordinates:
+
+**Simple visualization (recommended):**
+```bash
+# Analyze screenshot with default elements
+python visualize_elements.py screenshot.png
+
+# Search for specific elements
+python visualize_elements.py screenshot.png google_news_sign_in_button safari
+```
+
+**Advanced debugging:**
+```bash
+# Use existing screenshot
+python debug_element_finder.py screenshot.png
+
+# Take new screenshot and analyze (if backend available)
+python debug_element_finder.py
+```
+
+**Features:**
+- Shows element coordinates as colored circles and labels
+- Saves visualization as `elements_<filename>.png`
+- Works with all template elements from `TEMPLATE_MAP`
+- Useful for debugging template matching accuracy
 
 See `AGENTS.md` for detailed agent architecture and development guide.
