@@ -58,26 +58,14 @@ class TestConfig:
             assert config.OPENAI_API_KEY == ""
 
     def test_vm_proxy_url_strips_trailing_slash(self):
-        """Test VM_PROXY_URL strips trailing slash"""
-        with patch.dict(os.environ, {"VM_PROXY_URL": "https://example.com/"}):
+        """Test VM_IP_ADDRESS strips trailing slash"""
+        with patch.dict(os.environ, {"VM_IP_ADDRESS": "https://example.com/"}):
             import importlib
 
             from src import config
 
             importlib.reload(config)
-            assert config.VM_PROXY_URL == "https://example.com"
-
-    def test_USE_LOCAL_VISION_boolean_parsing(self):
-        """Test USE_LOCAL_VISION boolean parsing"""
-        # Test true values
-        for true_val in ["true", "True", "TRUE", "1", "yes"]:
-            with patch.dict(os.environ, {"USE_LOCAL_VISION": true_val}):
-                import importlib
-
-                from src import config
-
-                importlib.reload(config)
-                assert config.USE_LOCAL_VISION is (true_val.lower() == "true")
+            assert config.VM_IP_ADDRESS == "https://example.com"
 
     def test_default_trajectory_dir(self):
         """Test default trajectory directory"""

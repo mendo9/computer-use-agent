@@ -3,6 +3,7 @@
 Example usage of the Windows computer backend.
 Shows how to use the new WindowsComputer with .interface pattern.
 """
+
 import asyncio
 import os
 
@@ -13,7 +14,7 @@ async def main():
     """Example of using Windows computer interface."""
 
     # Set environment variable (or use .env file)
-    os.environ["VM_PROXY_URL"] = "http://192.168.1.100:8000"  # Replace with your Windows VM IP
+    os.environ["VM_IP_ADDRESS"] = "http://192.168.1.100:8000"  # Replace with your Windows VM IP
 
     # Get the computer instance (similar to Lume VM pattern)
     computer = get_computer_windows()

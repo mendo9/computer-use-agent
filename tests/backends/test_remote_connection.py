@@ -3,6 +3,7 @@
 Test script for remote CUA server connection.
 Tests the SSE response parsing and basic commands.
 """
+
 import asyncio
 import os
 import sys
@@ -18,9 +19,9 @@ async def test_basic_connection():
     """Test basic connection to remote computer-server."""
     print("🔗 Testing basic connection...")
 
-    vm_url = os.getenv("VM_PROXY_URL")
+    vm_url = os.getenv("VM_IP_ADDRESS")
     if not vm_url:
-        print("❌ VM_PROXY_URL not set in environment")
+        print("❌ VM_IP_ADDRESS not set in environment")
         return False
 
     print(f"📡 Connecting to: {vm_url}")
@@ -79,10 +80,10 @@ async def main():
     print("=" * 50)
 
     # Check environment
-    vm_url = os.getenv("VM_PROXY_URL")
+    vm_url = os.getenv("VM_IP_ADDRESS")
     if not vm_url:
-        print("❌ Please set VM_PROXY_URL environment variable")
-        print("   Example: export VM_PROXY_URL=http://192.168.1.100:8000")
+        print("❌ Please set VM_IP_ADDRESS environment variable")
+        print("   Example: export VM_IP_ADDRESS=http://192.168.1.100:8000")
         return 1
 
     # Run tests

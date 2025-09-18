@@ -114,7 +114,7 @@ schtasks /create /tn "$TaskName" /tr "powershell.exe -ExecutionPolicy Bypass -Fi
 ```bash
 # Set in your .env file
 COMPUTER_MODE=remote
-VM_PROXY_URL=http://YOUR_WINDOWS_VM_IP:8000
+VM_IP_ADDRESS=http://YOUR_WINDOWS_VM_IP:8000
 ```
 
 **2. Test Connection:**
@@ -148,7 +148,7 @@ Host Computer                    Windows VM
 **Connection Issues:**
 - Test VM connectivity: `curl http://YOUR_VM_IP:8000/version`
 - Check network routing between host and VM
-- Verify VM_PROXY_URL in .env matches VM's actual IP
+- Verify VM_IP_ADDRESS in .env matches VM's actual IP
 - Ensure no proxy or VPN interfering with connection
 
 **Performance Tips:**
