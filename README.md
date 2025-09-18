@@ -212,4 +212,32 @@ if coords:
     # Click at coordinates
 ```
 
+## Element Detection Debugging
+
+Two scripts are provided to visualize detected UI elements with their coordinates:
+
+**Simple visualization (recommended):**
+```bash
+# Analyze screenshot with default elements
+python visualize_elements.py screenshot.png
+
+# Search for specific elements
+python visualize_elements.py screenshot.png google_news_sign_in_button safari
+```
+
+**Advanced debugging:**
+```bash
+# Use existing screenshot
+python debug_element_finder.py screenshot.png
+
+# Take new screenshot and analyze (if backend available)
+python debug_element_finder.py
+```
+
+**Features:**
+- Shows element coordinates as colored circles and labels
+- Saves visualization as `elements_<filename>.png`
+- Works with all template elements from `TEMPLATE_MAP`
+- Useful for debugging template matching accuracy
+
 See `AGENTS.md` for detailed agent architecture and development guide.
