@@ -7,7 +7,7 @@ from pathlib import Path
 import cv2
 import numpy as np
 
-from src.vision.ocr_improved import find_text_by_ocr_improved
+from src.vision.ocr import find_text_by_ocr
 from src.vision.template_detector import detect_ui_elements
 from src.vision.template_manager import TemplateManager, TemplateRequest, TemplateStrategy
 
@@ -40,18 +40,18 @@ def find_target_center(png_bytes: bytes, query: str) -> tuple[int, int] | None:
     Returns:
         (x, y) center coordinates as integers, or None if not found
     """
-    coords = _find_by_template_matching(png_bytes, query)
+    coords = find_by_template_matching(png_bytes, query)
     if coords:
         return coords
 
-    coords = find_text_by_ocr_improved(png_bytes, query)
+    coords = find_text_by_ocr(png_bytes, query)
     if coords:
         return coords
 
     return None
 
 
-def _find_by_template_matching(png_bytes: bytes, query: str) -> tuple[int, int] | None:
+def find_by_template_matching(png_bytes: bytes, query: str) -> tuple[int, int] | None:
     """Find element using advanced template matching system."""
 
     # Convert PNG bytes to OpenCV image
@@ -62,7 +62,13 @@ def _find_by_template_matching(png_bytes: bytes, query: str) -> tuple[int, int] 
         template_manager = TemplateManager(library_path=TEMPLATES_PATH)
 
         # Map query to template info
-        template_name, category = _get_template_info(query)
+        template_info = _get_template_info(query)
+        if template_info is None:
+            print(f"❌ Template info is None for query: {query}")
+            return None
+
+        template_name, category = template_info
+        print(f"🔍 Template name: {template_name}, category: {category}")
 
         # Create template request
         template_request = TemplateRequest(
@@ -86,7 +92,13 @@ def _find_by_template_matching(png_bytes: bytes, query: str) -> tuple[int, int] 
 
         # Return the best overall match
         if detections:
-            return detections[0].center
+            # Convert numpy int64 to regular Python int for JSON serialization
+            center_x = int(detections[0].center[0])
+            center_y = int(detections[0].center[1])
+            print(
+                f"✅ Template matching found {query} at pixel coordinates: ({center_x}, {center_y})"
+            )
+            return (center_x, center_y)
 
     except Exception:
         pass
@@ -94,11 +106,11 @@ def _find_by_template_matching(png_bytes: bytes, query: str) -> tuple[int, int] 
     return None
 
 
-def _get_template_info(query: str) -> tuple[str, str]:
+def _get_template_info(query: str) -> tuple[str, str] | None:
     """Get template name and category for a query."""
 
     template_info = TEMPLATE_MAP.get(query.lower())
     if template_info:
         return template_info
     # Default to common category for unknown queries
-    return query, "common"
+    return None

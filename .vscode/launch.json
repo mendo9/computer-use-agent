@@ -9,16 +9,6 @@
             "console": "integratedTerminal",
             "cwd": "${workspaceFolder}",
             "python": "${workspaceFolder}/.venv/bin/python",
-            "args": ["${input:screenshotPath}", "${input:elementsToTest}", "${input:regionToTest}"]
-        },
-        {
-            "name": "Debug ocr coordinates",
-            "type": "debugpy",
-            "request": "launch",
-            "program": "${workspaceFolder}/scripts/debug/debug_ocr_coordinates.py",
-            "console": "integratedTerminal",
-            "cwd": "${workspaceFolder}",
-            "python": "${workspaceFolder}/.venv/bin/python",
             "args": ["${input:screenshotPath}", "${input:elementsToTest}"]
         }
     ],
@@ -26,42 +16,19 @@
         {
             "id": "screenshotPath",
             "description": "Path to screenshot file",
-            "default": "trajectories/data/all_flowsheets_header_screenshot.png",
+            "default": "trajectories/data/osh_heart_header_screenshot.png",
             "type": "pickString",
             "options": [
-                "trajectories/data/all_flowsheets_header_screenshot.png",
-                "trajectories/data/close_button_screenshot.png",
                 "trajectories/data/osh_heart_header_screenshot.png",
-                "trajectories/data/patient_charts_header_screenshot.png",
-                "trajectories/data/flowsheets_icon_header_screenshot.png",
-                "trajectories/data/debug_finder_flowsheets_icon_header_screenshot_1.png"
             ]
         },
         {
             "id": "elementsToTest",
             "description": "Elements to test (space-separated)",
             "options": [
-                "all_flowsheets_button",
-                "close_button",
-                "osh_heart_failure_header",
-                "patient_chart_header",
-                "flowsheets_header",
-                "flowsheet_icon",
+                "test",
             ],
-            "default": "all_flowsheets_button",
-            "type": "pickString"
-        },
-        ,
-        {
-            "id": "regionToTest",
-            "description": "Elements to test (space-separated)",
-            "options": [
-                "top",
-                "left",
-                "middle",
-                "right",
-            ],
-            "default": "left",
+            "default": "test",
             "type": "pickString"
         }
     ]

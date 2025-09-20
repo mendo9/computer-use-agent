@@ -1,164 +1,188 @@
 #!/usr/bin/env python3
 """
-Debug script to visualize detected UI elements with their coordinates.
-Shows screenshot with bounding boxes and coordinates of found elements.
+Debug script to test OCR text detection with visualization.
+Shows screenshot with detected text locations and coordinates.
 """
 
 import sys
 from pathlib import Path
 
 import cv2
+import matplotlib.patches as patches
+import matplotlib.pyplot as plt
 import numpy as np
 
 # Add project root to Python path so we can import from src/
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from src.vision.finder import TEMPLATE_MAP, find_target_center
+from src.vision.ocr import find_text_by_ocr
 
 
-def draw_detection_results(
-    image: np.ndarray, detections: list, title: str = "Detections"
-) -> np.ndarray:
-    """Draw bounding boxes and coordinates on the image."""
-    result_image = image.copy()
-
-    for _, detection in enumerate(detections):
-        # Get detection info
-        center = detection.center
-        bbox = detection.bbox if hasattr(detection, "bbox") else None
-        confidence = detection.confidence if hasattr(detection, "confidence") else 0.0
-
-        # Draw center point
-        cv2.circle(result_image, center, 5, (0, 255, 0), -1)
-
-        # Draw bounding box if available
-        if bbox:
-            x1, y1, x2, y2 = bbox
-            cv2.rectangle(result_image, (x1, y1), (x2, y2), (0, 255, 0), 2)
-
-        # Add text with coordinates and confidence
-        text = f"({center[0]}, {center[1]}) conf:{confidence:.2f}"
-        font = cv2.FONT_HERSHEY_SIMPLEX
-        font_scale = 0.6
-        thickness = 1
-
-        # Get text size for background
-        (text_width, text_height), baseline = cv2.getTextSize(text, font, font_scale, thickness)
-
-        # Draw background rectangle
-        text_x = center[0] + 10
-        text_y = center[1] - 10
-        cv2.rectangle(
-            result_image,
-            (text_x - 2, text_y - text_height - 2),
-            (text_x + text_width + 2, text_y + baseline + 2),
-            (0, 0, 0),
-            -1,
-        )
-
-        # Draw text
-        cv2.putText(
-            result_image, text, (text_x, text_y), font, font_scale, (255, 255, 255), thickness
-        )
-
-    return result_image
-
-
-def test_element_detection(
-    screenshot_path: str, elements_to_find: list[str], region: str
+def visualize_ocr_detection(
+    image_path: str, target_texts: list[str]
 ) -> dict[str, tuple[int, int] | None]:
-    """Test element detection and save visualization."""
+    """Test OCR detection and create visualization."""
 
-    # Load screenshot
-    if not Path(screenshot_path).exists():
-        print(f"Screenshot not found: {screenshot_path}")
+    # Load image
+    if not Path(image_path).exists():
+        print(f"❌ Image not found: {image_path}")
         return {}
 
-    # Read image
-    image = cv2.imread(screenshot_path)
+    image = cv2.imread(image_path)
     if image is None:
-        print(f"Could not load image: {screenshot_path}")
+        print(f"❌ Could not load image: {image_path}")
         return {}
 
-    print(f"Testing element detection on: {screenshot_path}")
-    print(f"Image size: {image.shape[1]}x{image.shape[0]}")
-    print(f"Elements to find: {elements_to_find}")
-    print("-" * 50)
+    print(f"📁 Testing OCR detection on: {image_path}")
+    print(f"📐 Image size: {image.shape[1]}x{image.shape[0]}")
+    print(f"🎯 Target texts: {target_texts}")
+    print("-" * 70)
 
-    # Convert to PNG bytes for finder function
+    # Convert to PNG bytes for OCR function
     _, buffer = cv2.imencode(".png", image)
     png_bytes = buffer.tobytes()
 
-    results: dict[str, tuple[int, int] | None] = {}
-    all_detections = []
+    results = {}
+    detections = []
 
-    for element in elements_to_find:
-        print(f"\nSearching for: {element}")
+    # Test each target text
+    for target_text in target_texts:
+        print(f"\n🔍 Searching for: '{target_text}'")
 
-        # Find center using existing finder
-        center = find_target_center(png_bytes, element)
-        # center = (245, 405)
-        # center = find_target_advanced(png_bytes, element, prefer="topmost")
+        # Use production OCR function for coordinates and bbox
+        result = find_text_by_ocr(png_bytes, target_text, return_bbox=True)
 
-        if center:
-            print(f"  ✓ Found at: {center}")
-            results[element] = center
-
-            # Create a mock detection object for visualization
-            class MockDetection:
-                def __init__(self, center, confidence=0.0):
-                    self.center = center
-                    self.confidence = confidence
-
-            all_detections.append(MockDetection(center))
+        if result[0]:  # coords found
+            coords, bbox = result
+            print(f"  ✅ Found at: {coords}")
+            results[target_text] = coords
+            detections.append({"text": target_text, "coords": coords, "bbox": bbox})
         else:
-            print("  ✗ Not found")
-            results[element] = None
+            print("  ❌ Not found")
+            results[target_text] = None
 
-    # Draw all detections on image
-    if all_detections:
-        result_image = draw_detection_results(image, all_detections, "Element Detection Results")
-
-        # Save result
-        output_path = (
-            f"{Path(screenshot_path).parent}/debug_finder_{Path(screenshot_path).stem}.png"
-        )
-        cv2.imwrite(output_path, result_image)
-        print(f"\n✓ Results saved to: {output_path}")
+    # Create visualization
+    if detections:
+        print("\n📊 Creating visualization...")
+        create_visualization(image, detections, image_path, target_texts)
     else:
-        print("\n✗ No elements found to visualize")
+        print("\n❌ No text found to visualize")
 
     return results
 
 
-def main():
-    """Main function to run element detection debugging."""
+def create_visualization(
+    image: np.ndarray, detections: list, image_path: str, target_texts: list[str]
+):
+    """Create and save visualization of OCR results."""
 
-    print("UI Element Detection Debugger")
+    # Convert BGR to RGB for matplotlib
+    image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+
+    # Create figure
+    fig, ax = plt.subplots(1, 1, figsize=(14, 10))
+    ax.imshow(image_rgb)
+    ax.set_title(
+        f"OCR Detection Results - {len(detections)}/{len(target_texts)} found", fontsize=16
+    )
+    ax.axis("off")
+
+    # Draw detections
+    colors = ["lime", "red", "yellow", "cyan", "magenta", "orange"]
+
+    for i, detection in enumerate(detections):
+        coords = detection["coords"]
+        text = detection["text"]
+        color = colors[i % len(colors)]
+
+        # Draw exact bounding box if available
+        bbox = detection.get("bbox")
+        if bbox:
+            x_coords = [p[0] for p in bbox]
+            y_coords = [p[1] for p in bbox]
+            min_x, max_x = min(x_coords), max(x_coords)
+            min_y, max_y = min(y_coords), max(y_coords)
+            width = max_x - min_x
+            height = max_y - min_y
+
+            # Draw exact bounding box
+            rect = patches.Rectangle(
+                (min_x, min_y),
+                width,
+                height,
+                linewidth=3,
+                edgecolor=color,
+                facecolor="none",
+                alpha=0.8,
+            )
+            ax.add_patch(rect)
+
+        # Draw small center dot
+        circle = patches.Circle(coords, radius=5, color=color, linewidth=2, fill=True, alpha=0.9)
+        ax.add_patch(circle)
+
+        # Add text annotation with background
+        ax.annotate(
+            f"'{text}'\n({coords[0]}, {coords[1]})",
+            xy=coords,
+            xytext=(coords[0], coords[1] - 50),
+            fontsize=12,
+            color=color,
+            weight="bold",
+            ha="center",
+            bbox={
+                "boxstyle": "round,pad=0.5",
+                "facecolor": "black",
+                "edgecolor": color,
+                "alpha": 0.8,
+            },
+            arrowprops={"arrowstyle": "->", "color": color, "lw": 2},
+        )
+
+    # Save result
+    output_path = f"{Path(image_path).parent}/debug_ocr_{Path(image_path).stem}.png"
+    plt.savefig(output_path, dpi=150, bbox_inches="tight")
+    print(f"💾 Visualization saved to: {output_path}")
+
+    plt.show()
+
+
+def main():
+    """Main function to run OCR detection debugging."""
+
+    print("OCR Detection Debugger")
+    print("=" * 70)
 
     # Parse command line arguments
-    if len(sys.argv) < 4:
-        print("\nUsage: python debug_element_finder.py <screenshot_path> <elements>")
-        print("  <elements>: space-separated list of elements to test or individual arguments")
-        print(f"Available elements: {list(TEMPLATE_MAP.keys())}")
+    if len(sys.argv) < 3:
+        print("\nUsage: python test_easyocr.py <screenshot_path> <texts_to_find>")
+        print("  <texts_to_find>: space-separated text strings to search for")
+        print("\nExample:")
+        print('  python test_easyocr.py screenshot.png "All Flowsheets" "Patient" "My Favorites"')
         return
 
-    screenshot_path = sys.argv[1]
+    image_path = sys.argv[1]
 
     # Handle both individual arguments and space-separated string
-    # Single argument with space-separated elements (from launch.json) or multiple arguments (command line)
-    elements = sys.argv[2].split() if len(sys.argv) == 3 else sys.argv[2:]
-    region = sys.argv[3]
+    target_texts = sys.argv[2:] if len(sys.argv) > 3 else sys.argv[2].split()
 
-    print(f"\nUsing screenshot: {screenshot_path}")
-    print(f"Elements to test: {elements}")
+    print(f"\n📁 Screenshot: {image_path}")
+    print(f"🎯 Target texts: {target_texts}")
 
-    results = test_element_detection(screenshot_path, elements, region)
+    # Run OCR detection test
+    results = visualize_ocr_detection(image_path, target_texts)
+
+    # Print summary
     if results:
-        print(
-            f"\nSummary: Found {len([v for v in results.values() if v is not None])}/{len(results)} elements"
-        )
-    print("\nDone!")
+        found_count = len([v for v in results.values() if v is not None])
+        total_count = len(results)
+        print(f"\n📋 Summary: Found {found_count}/{total_count} text strings")
+
+        for text, coords in results.items():
+            status = f"✅ {coords}" if coords else "❌ Not found"
+            print(f"  '{text}': {status}")
+
+    print("\n✅ Done!")
 
 
 if __name__ == "__main__":
