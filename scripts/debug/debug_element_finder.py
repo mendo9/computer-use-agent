@@ -97,6 +97,7 @@ def test_element_detection(
 
         # Find center using existing finder
         center = find_target_center(png_bytes, element)
+        # center = (245, 405)
         # center = find_target_advanced(png_bytes, element, prefer="topmost")
 
         if center:

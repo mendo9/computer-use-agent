@@ -16,15 +16,14 @@ TEMPLATE_MAP = {
     "safari": ("safari_icon", "macos_dock"),
     "safari_search": ("safari_search", "macos_dock"),
     "notes": ("notes_icon", "macos_dock"),
-    "greenway_dev_icon": ("greenway_dev_icon", "greenway"),
-    "search_button": ("search_button", "greenway"),
-    "select_button": ("select_button", "greenway"),
-    "down_arrow_icon": ("down_arrow_icon", "greenway"),
-    "up_arrow_icon": ("up_arrow_icon", "greenway"),
-    "flowsheet_icon": ("flowsheet_icon", "greenway"),
-    "magnifying_glass_icon": ("magnifying_glass_icon", "greenway"),
-    "patient_id_text_field": ("patient_id_text_field", "greenway"),
-    "all_flowsheets_button": ("all_flowsheets_button", "greenway"),
+    # Google News templates
+    "google_news_email_text": ("email_text", "google_news"),
+    # "google_news_italian_dropdown": ("italian_drp_dwn", "google_news"),
+    # "google_news_language_dropdown": ("language_drp_dwn", "google_news"),
+    "google_news_next_button": ("next_btn", "google_news"),
+    "google_news_tech_button": ("technology_btn", "google_news"),
+    "google_news_virtual_reality_button": ("virtual_reality_btn", "google_news"),
+    "google_news_sign_in_button": ("sign_in_btn", "google_news"),
 }
 # can use 0.4 if enable_multiscale is FALSE
 CONFIDENCE_THRESHOLD = 0.6
@@ -41,7 +40,7 @@ def find_target_center(png_bytes: bytes, query: str) -> tuple[int, int] | None:
     Returns:
         (x, y) center coordinates as integers, or None if not found
     """
-    coords = find_by_template_matching(png_bytes, query)
+    coords = _find_by_template_matching(png_bytes, query)
     if coords:
         return coords
 
@@ -54,42 +53,7 @@ def find_target_center(png_bytes: bytes, query: str) -> tuple[int, int] | None:
     return None
 
 
-def find_target_advanced(
-    png_bytes: bytes,
-    query: str,
-    region: str | None = None,
-    prefer: str = "highest_confidence",
-    debug: bool = False,
-) -> tuple[int, int] | None:
-    """
-    Find UI element with advanced OCR options for handling multiple matches.
-
-    Args:
-        png_bytes: Screenshot as PNG bytes
-        query: Element name (e.g., "all_flowsheets_button")
-        region: Optional region filter ("top", "bottom", "left", "right", "center")
-        prefer: Selection strategy ("highest_confidence", "largest", "smallest",
-               "topmost", "bottommost", "leftmost", "rightmost")
-        debug: Enable detailed coordinate debugging output
-
-    Returns:
-        (x, y) center coordinates as integers, or None if not found
-    """
-    # Try template matching first
-    coords = find_by_template_matching(png_bytes, query)
-    if coords:
-        return coords
-
-    # If OCR-based text detection with advanced options
-    if query in TEXT_MAP:
-        coords = find_text_by_ocr(png_bytes, query, region=region, prefer=prefer, debug=debug)
-        if coords:
-            return coords
-
-    return None
-
-
-def find_by_template_matching(png_bytes: bytes, query: str) -> tuple[int, int] | None:
+def _find_by_template_matching(png_bytes: bytes, query: str) -> tuple[int, int] | None:
     """Find element using advanced template matching system."""
 
     # Convert PNG bytes to OpenCV image
@@ -100,13 +64,7 @@ def find_by_template_matching(png_bytes: bytes, query: str) -> tuple[int, int] |
         template_manager = TemplateManager(library_path=TEMPLATES_PATH)
 
         # Map query to template info
-        template_info = _get_template_info(query)
-        if template_info is None:
-            print(f"❌ Template info is None for query: {query}")
-            return None
-
-        template_name, category = template_info
-        print(f"🔍 Template name: {template_name}, category: {category}")
+        template_name, category = _get_template_info(query)
 
         # Create template request
         template_request = TemplateRequest(
@@ -130,13 +88,7 @@ def find_by_template_matching(png_bytes: bytes, query: str) -> tuple[int, int] |
 
         # Return the best overall match
         if detections:
-            # Convert numpy int64 to regular Python int for JSON serialization
-            center_x = int(detections[0].center[0])
-            center_y = int(detections[0].center[1])
-            print(
-                f"✅ Template matching found {query} at pixel coordinates: ({center_x}, {center_y})"
-            )
-            return (center_x, center_y)
+            return detections[0].center
 
     except Exception:
         pass
@@ -144,11 +96,11 @@ def find_by_template_matching(png_bytes: bytes, query: str) -> tuple[int, int] |
     return None
 
 
-def _get_template_info(query: str) -> tuple[str, str] | None:
+def _get_template_info(query: str) -> tuple[str, str]:
     """Get template name and category for a query."""
 
     template_info = TEMPLATE_MAP.get(query.lower())
     if template_info:
         return template_info
     # Default to common category for unknown queries
-    return None
+    return query, "common"
