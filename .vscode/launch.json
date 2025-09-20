@@ -9,7 +9,7 @@
             "console": "integratedTerminal",
             "cwd": "${workspaceFolder}",
             "python": "${workspaceFolder}/.venv/bin/python",
-            "args": ["${input:screenshotPath}", "${input:elementsToTest}"]
+            "args": ["${input:screenshotPath}", "${input:elementsToTest}", "${input:regionToTest}"]
         },
         {
             "name": "Debug ocr coordinates",
@@ -49,6 +49,19 @@
                 "flowsheet_icon",
             ],
             "default": "all_flowsheets_button",
+            "type": "pickString"
+        },
+        ,
+        {
+            "id": "regionToTest",
+            "description": "Elements to test (space-separated)",
+            "options": [
+                "top",
+                "left",
+                "middle",
+                "right",
+            ],
+            "default": "left",
             "type": "pickString"
         }
     ]

@@ -7,7 +7,7 @@ from pathlib import Path
 import cv2
 import numpy as np
 
-from src.vision.ocr import TEXT_MAP, find_text_by_ocr
+from src.vision.ocr_improved import find_text_by_ocr_improved
 from src.vision.template_detector import detect_ui_elements
 from src.vision.template_manager import TemplateManager, TemplateRequest, TemplateStrategy
 
@@ -44,11 +44,9 @@ def find_target_center(png_bytes: bytes, query: str) -> tuple[int, int] | None:
     if coords:
         return coords
 
-    # If OCR-based text detection
-    if query in TEXT_MAP:
-        coords = find_text_by_ocr(png_bytes, query)
-        if coords:
-            return coords
+    coords = find_text_by_ocr_improved(png_bytes, query)
+    if coords:
+        return coords
 
     return None
 

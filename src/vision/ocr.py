@@ -8,6 +8,13 @@ import cv2
 import numpy as np
 from paddleocr import PaddleOCR
 
+# Import improved OCR as fallback
+try:
+    from src.vision.ocr_improved import find_text_by_ocr_improved, add_text_mapping as add_text_mapping_improved
+except ImportError:
+    find_text_by_ocr_improved = None
+    add_text_mapping_improved = None
+
 # Initialize OCR instance (lazy loading)
 _ocr_instance: PaddleOCR | None = None
 
@@ -18,12 +25,13 @@ TEXT_MAP = {
 }
 
 
-def find_text_by_ocr(png_bytes: bytes, query: str) -> tuple[int, int] | None:
-    """Find element using OCR text detection.
+def find_text_by_ocr(png_bytes: bytes, query: str, region: str = "full") -> tuple[int, int] | None:
+    """Find element using OCR text detection in a specific region.
 
     Args:
         png_bytes: Screenshot as PNG bytes
         query: Element query name (must be in TEXT_MAP)
+        region: Region to search ('top', 'left', 'middle', 'right')
 
     Returns:
         (x, y) center coordinates as integers, or None if not found
@@ -36,17 +44,32 @@ def find_text_by_ocr(png_bytes: bytes, query: str) -> tuple[int, int] | None:
     try:
         # Initialize OCR instance if needed (lazy loading)
         if _ocr_instance is None:
-            _ocr_instance = PaddleOCR(use_textline_orientation=True, lang="en")
+            _ocr_instance = PaddleOCR(
+                use_textline_orientation=False,  # Disable rotation detection for speed
+                lang="en",
+            )
 
         # Convert PNG bytes to OpenCV image
         nparr = np.frombuffer(png_bytes, np.uint8)
-        image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+        full_image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+
+        if full_image is None:
+            return None
+
+        # Crop image to specified region with overlap
+        image, region_offset = _crop_to_region(full_image, region)
 
         if image is None:
             return None
 
-        # Run OCR on the image
-        ocr_results = _ocr_instance.predict(image)
+        # Run OCR on the image with timeout handling
+        print(f"🔍 Running OCR on image size: {image.shape}")
+        try:
+            ocr_results = _ocr_instance.predict(image)
+            print(f"🔍 OCR returned {len(ocr_results) if ocr_results else 0} results")
+        except Exception as e:
+            print(f"❌ OCR prediction failed: {e}")
+            return None
 
         if not ocr_results:
             return None
@@ -67,21 +90,21 @@ def find_text_by_ocr(png_bytes: bytes, query: str) -> tuple[int, int] | None:
                     if score > 0.7 and _text_similarity(text.lower(), target_text):
                         # Convert polygon to center coordinates
                         # poly is a numpy array with shape (4, 2) representing the four corners
-                        print(f"🔍 DEBUG: Polygon shape: {poly.shape}, coordinates: {poly}")
-
                         x_coords = poly[:, 0]
                         y_coords = poly[:, 1]
 
-                        print(f"🔍 DEBUG: X coords: {x_coords}, Y coords: {y_coords}")
-
-                        # Standard center calculation
+                        # Standard center calculation (revert to working version)
                         center_x = int(np.mean(x_coords))
                         center_y = int(np.mean(y_coords))
 
+                        # Adjust coordinates back to full image coordinates
+                        final_x = center_x + region_offset[0]
+                        final_y = center_y + region_offset[1]
+
                         print(
-                            f"📝 OCR found '{text}' (confidence: {score:.2f}) at ({center_x}, {center_y})"
+                            f"📝 OCR found '{text}' (confidence: {score:.2f}) at region ({center_x}, {center_y}) -> full ({final_x}, {final_y})"
                         )
-                        return (center_x, center_y)
+                        return (final_x, final_y)
 
         print(f"📝 OCR didn't find text '{target_text}' in image")
         return None
@@ -89,6 +112,46 @@ def find_text_by_ocr(png_bytes: bytes, query: str) -> tuple[int, int] | None:
     except Exception as e:
         print(f"❌ OCR error: {e}")
         return None
+
+
+def _crop_to_region(image: np.ndarray, region: str) -> tuple[np.ndarray | None, tuple[int, int]]:
+    """Crop image to specified region with overlap.
+
+    Args:
+        image: Full screenshot image
+        region: Region to crop ('top', 'left', 'middle', 'right')
+
+    Returns:
+        (cropped_image, (offset_x, offset_y)) or (None, (0, 0)) if invalid
+    """
+    h, w = image.shape[:2]
+    overlap = 50  # pixels of overlap between regions
+
+    if region == "top":
+        # Top half with bottom overlap
+        y1, y2 = 0, h // 2 + overlap
+        x1, x2 = 0, w
+    elif region == "left":
+        # Left half with right overlap (unbiased 50/50 split)
+        y1, y2 = 0, h
+        x1, x2 = 0, w // 2 + overlap
+    elif region == "middle":
+        # Center 50% with equal side overlaps
+        y1, y2 = 0, h
+        x1, x2 = w // 4, 3 * w // 4
+    elif region == "right":
+        # Right half with left overlap (unbiased 50/50 split)
+        y1, y2 = 0, h
+        x1, x2 = w // 2 - overlap, w
+    else:
+        return None, (0, 0)
+
+    # Ensure bounds are valid
+    y1, y2 = max(0, y1), min(h, y2)
+    x1, x2 = max(0, x1), min(w, x2)
+
+    cropped = image[y1:y2, x1:x2]
+    return cropped, (x1, y1)
 
 
 def _text_similarity(detected: str, target: str) -> bool:

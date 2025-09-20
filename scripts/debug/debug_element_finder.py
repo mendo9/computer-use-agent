@@ -65,7 +65,7 @@ def draw_detection_results(
 
 
 def test_element_detection(
-    screenshot_path: str, elements_to_find: list[str]
+    screenshot_path: str, elements_to_find: list[str], region: str
 ) -> dict[str, tuple[int, int] | None]:
     """Test element detection and save visualization."""
 
@@ -137,7 +137,7 @@ def main():
     print("UI Element Detection Debugger")
 
     # Parse command line arguments
-    if len(sys.argv) < 3:
+    if len(sys.argv) < 4:
         print("\nUsage: python debug_element_finder.py <screenshot_path> <elements>")
         print("  <elements>: space-separated list of elements to test or individual arguments")
         print(f"Available elements: {list(TEMPLATE_MAP.keys())}")
@@ -148,11 +148,12 @@ def main():
     # Handle both individual arguments and space-separated string
     # Single argument with space-separated elements (from launch.json) or multiple arguments (command line)
     elements = sys.argv[2].split() if len(sys.argv) == 3 else sys.argv[2:]
+    region = sys.argv[3]
 
     print(f"\nUsing screenshot: {screenshot_path}")
     print(f"Elements to test: {elements}")
 
-    results = test_element_detection(screenshot_path, elements)
+    results = test_element_detection(screenshot_path, elements, region)
     if results:
         print(
             f"\nSummary: Found {len([v for v in results.values() if v is not None])}/{len(results)} elements"

@@ -28,6 +28,9 @@ dependencies = [
   "paddleocr[all]>=3.2.0",
   "paddlepaddle>=3.2.0",
   "pillow>=11.3.0",
+  "easyocr>=1.7.2",
+  "matplotlib>=3.10.6",
+  "pytesseract>=0.3.13",
 ]
 
 
