@@ -186,23 +186,44 @@ def find_text_by_ocr(png_bytes: bytes, query: str, return_bbox: bool = False):
         if image is None:
             return None
 
-        # Preprocess image (convert to grayscale and sharpen)
+        # Try multiple preprocessing methods for better text detection (especially underlined text)
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-        sharpened = cv2.filter2D(gray, -1, np.array([[-1, -1, -1], [-1, 9, -1], [-1, -1, -1]]))
+
+        preprocessing_methods = [
+            (
+                "sharpened",
+                cv2.filter2D(gray, -1, np.array([[-1, -1, -1], [-1, 9, -1], [-1, -1, -1]])),
+            ),
+            (
+                "bilateral_filtered",
+                cv2.bilateralFilter(gray, 9, 75, 75),
+            ),  # Better for underlined text
+        ]
 
         # Get EasyOCR reader
         reader = get_easyocr_reader()
 
-        # Run OCR
         print(f"🔍 Running improved OCR for '{target_text}'...")
-        results = reader.readtext(sharpened)
 
-        if not results:
-            print("📝 No text detected")
-            return None
+        best_overall_match = None
+        best_overall_score = 0
 
-        # Find best match
-        best_match = find_best_match(results, target_text)
+        # Try each preprocessing method
+        for method_name, processed_image in preprocessing_methods:
+            results = reader.readtext(processed_image)
+
+            if not results:
+                continue
+
+            best_match = find_best_match(results, target_text)
+
+            if best_match and best_match["match_score"] > best_overall_score:
+                best_overall_match = best_match
+                best_overall_score = best_match["match_score"]
+                best_overall_match["preprocessing_method"] = method_name
+
+        # Use the best match found across all methods
+        best_match = best_overall_match
 
         if best_match:
             # Calculate center coordinates
@@ -212,9 +233,10 @@ def find_text_by_ocr(png_bytes: bytes, query: str, return_bbox: bool = False):
             center_x = int(np.mean(x_coords))
             center_y = int(np.mean(y_coords))
 
+            method = best_match.get("preprocessing_method", "unknown")
             print(
                 f"✅ Found '{best_match['text']}' -> '{best_match['normalized']}' "
-                f"(confidence: {best_match['confidence']:.2f}) at ({center_x}, {center_y})"
+                f"(confidence: {best_match['confidence']:.2f}) at ({center_x}, {center_y}) using {method} preprocessing"
             )
 
             if return_bbox:
@@ -317,7 +339,6 @@ TEXT_MAP = {
     "google_news_virtual_reality_button": "Virtual Reality",
     "google_news_sign_in_button": "Sign in",
     "google_news_next_button": "Next",
-    "test": "OSH False Positive",
     "google_news_language_dropdown": "English (United States)",
     "google_news_language_dropdown_arrow": "▼",
     "google_news_italian_dropdown": "Italiano",
