@@ -66,3 +66,8 @@ dev = [
   "pre-commit>=3.7.1",
   "pytest-asyncio>=1.2.0",
 ]
+eval = [
+  "jiwer>=4.0.0",
+  "pycocotools>=2.0.10",
+  "torchmetrics>=1.8.2",
+]

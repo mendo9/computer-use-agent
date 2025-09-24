@@ -1,0 +1,32 @@
+{
+  "items": [
+    {
+      "screenshot": "trajectories/data/screenshot1.png",
+      "elements": [
+        {
+          "type": "template",
+          "name": "safari_icon",
+          "bbox": [100, 150, 50, 50]
+        },
+        {
+          "type": "text",
+          "name": "sign_in_label",
+          "bbox": [300, 500, 380, 520],
+          "text": "Sign in"
+        }
+      ]
+    },
+    {
+      "screenshot": "trajectories/data/screenshot2.png",
+      "elements": [
+        {
+          "type": "text",
+          "name": "headline_label",
+          "bbox": [[50, 60], [220, 60], [220, 92], [50, 92]],
+          "text": "Top Stories"
+        }
+      ]
+    }
+  ]
+}
+  
