@@ -2,55 +2,34 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Run TextEdit Demo",
-            "type": "debugpy",
-            "request": "launch",
-            "module": "src.tasks.lume.demo_template_matching_google_news",
-            "console": "integratedTerminal",
-            "cwd": "${workspaceFolder}",
-            "python": "${workspaceFolder}/.venv/bin/python",
-        },
-        {
-            "name": "Run Agent TextEdit Demo",
-            "type": "debugpy",
-            "request": "launch",
-            "module": "src.tasks.demo_macos_agent_textedit",
-            "console": "integratedTerminal",
-            "cwd": "${workspaceFolder}",
-            "python": "${workspaceFolder}/.venv/bin/python",
-        },
-        {
-            "name": "Visualize Elements",
-            "type": "debugpy",
-            "request": "launch",
-            "program": "${workspaceFolder}/visualize_elements.py",
-            "console": "integratedTerminal",
-            "cwd": "${workspaceFolder}",
-            "python": "${workspaceFolder}/.venv/bin/python",
-            "args": ["${input:screenshotPath}"]
-        },
-        {
             "name": "Debug Element Finder",
             "type": "debugpy",
             "request": "launch",
-            "program": "${workspaceFolder}/debug_element_finder.py",
+            "program": "${workspaceFolder}/scripts/debug/debug_element_finder.py",
             "console": "integratedTerminal",
             "cwd": "${workspaceFolder}",
             "python": "${workspaceFolder}/.venv/bin/python",
-            "args": ["${input:screenshotPath}"]
+            "args": ["${input:screenshotPath}", "${input:elementsToTest}"]
         }
     ],
     "inputs": [
         {
             "id": "screenshotPath",
             "description": "Path to screenshot file",
-            "default": "${workspaceFolder}/screenshot.png",
+            "default": "trajectories/data/osh_heart_header_screenshot.png",
             "type": "pickString",
             "options": [
-                "${workspaceFolder}/screenshot.png",
-                "${workspaceFolder}/current_screenshot.png",
-                "${workspaceFolder}/test_screenshot.png"
+                "trajectories/data/osh_heart_header_screenshot.png",
             ]
+        },
+        {
+            "id": "elementsToTest",
+            "description": "Elements to test (space-separated)",
+            "options": [
+                "test",
+            ],
+            "default": "test",
+            "type": "pickString"
         }
     ]
 }
